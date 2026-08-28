@@ -93,11 +93,11 @@ const svgPointFromEvent = (event: React.PointerEvent, svg: SVGSVGElement | null)
 function SharedReadouts({ time }: { time: number }) {
     const { opacity } = useHighlightState();
     return (
-        <g fontSize="12" style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
-            <text x="24" y="34" fill={INK} opacity={opacity("time")}>
+        <g fontSize="18" style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
+            <text x="24" y="40" fill={INK} opacity={opacity("time")}>
                 {`t = ${formatMinutes(time)}`}
             </text>
-            <text x={VIEW_WIDTH - 24} y="34" fill={ACCENT} textAnchor="end" opacity={opacity("temperature")}>
+            <text x={VIEW_WIDTH - 24} y="40" fill={ACCENT} textAnchor="end" opacity={opacity("temperature")}>
                 {`T = ${formatTemp(tempAtTime(time))}`}
             </text>
         </g>
