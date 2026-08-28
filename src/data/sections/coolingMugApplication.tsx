@@ -1,9 +1,401 @@
-import { type ReactElement } from "react";
+import React, { useRef, useState, type ReactElement } from "react";
 import { Block } from "@/components/templates";
 import { StackLayout } from "@/components/layouts";
-import { EditableH2, EditableParagraph } from "@/components/atoms";
-import { FormulaBlock } from "@/components/molecules";
-import { VisualOptionCards } from "@/components/organisms";
+import {
+    EditableH2,
+    EditableParagraph,
+    InlineClozeInput,
+    InlineFeedback,
+    InlineLinkedHighlight,
+    InlineScrubbleNumber,
+    InteractionHintSequence,
+} from "@/components/atoms";
+import { Figure, FormulaBlock } from "@/components/molecules";
+import { useVar, useSetVar } from "@/stores";
+import { clamp, remap, useSpring, type Vec2 } from "@/lib/motion";
+import {
+    clozePropsFromDefinition,
+    getVariableInfo,
+    linkedHighlightPropsFromDefinition,
+    numberPropsFromDefinition,
+} from "../variables";
+
+// ── Model ────────────────────────────────────────────────────────────────────
+
+const ROOM_TEMP = 20;
+const START_TEMP = 90;
+const COOLING_K = 0.05;
+const MAX_TIME = 40;
+
+const tempAtTime = (t: number) => ROOM_TEMP + (START_TEMP - ROOM_TEMP) * Math.exp(-COOLING_K * t);
+
+// ── View geometry ────────────────────────────────────────────────────────────
+
+const VIEW_WIDTH = 560;
+const VIEW_HEIGHT = 500;
+
+const CHIP_WIDTH = 76;
+const CHIP_HEIGHT = 36;
+const CHIP_ROW_Y = 104;
+const SNAP_RADIUS = 46;
+
+const PLOT_LEFT = 80;
+const PLOT_RIGHT = 500;
+const PLOT_TOP = 330;
+const PLOT_BOTTOM = 452;
+
+const xForTime = (t: number) => remap(t, 0, MAX_TIME, PLOT_LEFT, PLOT_RIGHT);
+const yForTemp = (T: number) =>
+    PLOT_BOTTOM - ((T - ROOM_TEMP) / (START_TEMP - ROOM_TEMP)) * (PLOT_BOTTOM - PLOT_TOP);
+
+const INK = "#334155";
+const INK_STRUCTURE = "#64748B";
+const INK_QUIET = "#CBD5E1";
+const ACCENT = "#62D0AD";
+const PAPER = "#FFFFFF";
+
+const formatMinutes = (v: number) => `${v.toFixed(1)} min`;
+const formatTemp = (v: number) => `${v.toFixed(1)}°C`;
+
+const EASE_150 = { transition: "opacity 150ms ease, stroke-width 150ms ease" } as const;
+
+type ChipId = "start" | "room" | "rate";
+
+interface ChipSpec {
+    id: ChipId;
+    varName: string;
+    label: string;
+    caption: string;
+    home: Vec2;
+    slot: Vec2;
+}
+
+const CHIPS: ChipSpec[] = [
+    {
+        id: "rate",
+        varName: "setupRateFilled",
+        label: "0.05",
+        caption: "per minute",
+        home: { x: 450, y: CHIP_ROW_Y },
+        slot: { x: 246, y: 209 },
+    },
+    {
+        id: "room",
+        varName: "setupRoomFilled",
+        label: "20°C",
+        caption: "room",
+        home: { x: 340, y: CHIP_ROW_Y },
+        slot: { x: 390, y: 209 },
+    },
+    {
+        id: "start",
+        varName: "setupStartFilled",
+        label: "90°C",
+        caption: "poured at",
+        home: { x: 230, y: CHIP_ROW_Y },
+        slot: { x: 357, y: 265 },
+    },
+];
+
+const useHighlightState = () => {
+    const highlight = useVar<string>("applicationHighlight", "");
+    const setVar = useSetVar();
+    return {
+        opacity: (id: string) => (highlight && highlight !== id ? 0.35 : 1),
+        weight: (id: string, resting: number) => (highlight === id ? resting * 1.6 : resting),
+        isActive: (id: string) => highlight === id,
+        hoverProps: (id: string) => ({
+            onPointerEnter: () => setVar("applicationHighlight", id),
+            onPointerLeave: () => setVar("applicationHighlight", ""),
+        }),
+    };
+};
+
+const svgPointFromEvent = (event: React.PointerEvent, svg: SVGSVGElement | null): Vec2 => {
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    return {
+        x: ((event.clientX - rect.left) / rect.width) * VIEW_WIDTH,
+        y: ((event.clientY - rect.top) / rect.height) * VIEW_HEIGHT,
+    };
+};
+
+function EquationSetupDrawing() {
+    const setVar = useSetVar();
+    const startFilled = useVar<number>("setupStartFilled", 0);
+    const roomFilled = useVar<number>("setupRoomFilled", 0);
+    const rateFilled = useVar<number>("setupRateFilled", 0);
+    const time = useVar<number>("applicationTime", 20);
+    const { opacity, weight, isActive, hoverProps } = useHighlightState();
+
+    const filled: Record<ChipId, number> = { start: startFilled, room: roomFilled, rate: rateFilled };
+    const complete = startFilled > 0.5 && roomFilled > 0.5 && rateFilled > 0.5;
+
+    const [dragChip, setDragChip] = useState<ChipId | null>(null);
+    const [dragPos, setDragPos] = useState<Vec2>({ x: 0, y: 0 });
+    const dragChipRef = useRef<ChipId | null>(null);
+    const svgRef = useRef<SVGSVGElement>(null);
+
+    const [draggingMarker, setDraggingMarker] = useState(false);
+    const [hoveredMarker, setHoveredMarker] = useState(false);
+    const draggingMarkerRef = useRef(false);
+    const markerScale = useSpring(draggingMarker || hoveredMarker ? 1.15 : 1, { stiffness: 400, damping: 26 });
+
+    const chipPosition = (chip: ChipSpec): Vec2 => {
+        if (dragChip === chip.id) return dragPos;
+        return filled[chip.id] > 0.5 ? chip.slot : chip.home;
+    };
+
+    const handleChipDown = (chip: ChipSpec) => (event: React.PointerEvent<SVGRectElement>) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragChipRef.current = chip.id;
+        setDragChip(chip.id);
+        setDragPos(chipPosition(chip));
+        if (filled[chip.id] > 0.5) setVar(chip.varName, 0);
+    };
+
+    const handleChipMove = (chip: ChipSpec) => (event: React.PointerEvent<SVGRectElement>) => {
+        if (dragChipRef.current !== chip.id) return;
+        setDragPos(svgPointFromEvent(event, svgRef.current));
+    };
+
+    const handleChipUp = (chip: ChipSpec) => () => {
+        if (dragChipRef.current !== chip.id) return;
+        const distance = Math.hypot(dragPos.x - chip.slot.x, dragPos.y - chip.slot.y);
+        if (distance <= SNAP_RADIUS) setVar(chip.varName, 1);
+        dragChipRef.current = null;
+        setDragChip(null);
+    };
+
+    const handleMarkerMove = (event: React.PointerEvent<SVGCircleElement>) => {
+        if (!draggingMarkerRef.current) return;
+        const point = svgPointFromEvent(event, svgRef.current);
+        setVar(
+            "applicationTime",
+            clamp(Math.round(remap(point.x, PLOT_LEFT, PLOT_RIGHT, 0, MAX_TIME) * 2) / 2, 0, MAX_TIME),
+        );
+    };
+
+    const samples = Array.from({ length: 161 }, (_, index) => (index * MAX_TIME) / 160);
+    const curvePath = samples
+        .map((t, index) => `${index === 0 ? "M" : "L"} ${xForTime(t)} ${yForTemp(tempAtTime(t))}`)
+        .join(" ");
+    const markerX = xForTime(time);
+    const markerY = yForTemp(tempAtTime(time));
+
+    return (
+        <svg
+            ref={svgRef}
+            viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+            className="block w-full select-none"
+            role="img"
+            aria-label="Three number tags dragged from a mug into the empty slots of a cooling equation"
+        >
+            <defs>
+                <filter id="setup-chip-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#0F172A" floodOpacity="0.25" />
+                </filter>
+            </defs>
+
+            {/* The real situation: one mug, gently steaming. */}
+            <g opacity={opacity("__structure")} style={EASE_150}>
+                <path
+                    d="M 36 70 L 36 138 Q 36 146 46 146 L 106 146 Q 116 146 116 138 L 116 70 Z"
+                    fill="#F8FAFC"
+                    stroke={INK_STRUCTURE}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                />
+                <path
+                    d="M 116 86 Q 138 88 138 102 Q 138 116 116 118"
+                    fill="none"
+                    stroke={INK_STRUCTURE}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                />
+                <path d="M 40 82 L 112 82" stroke={INK_QUIET} strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M 60 66 Q 54 54 60 42 Q 66 32 62 24" fill="none" stroke={INK_STRUCTURE} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                <path d="M 90 66 Q 84 54 90 42 Q 96 32 92 24" fill="none" stroke={INK_STRUCTURE} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+            </g>
+
+            {/* The equation, with three slots waiting to be filled. */}
+            <g opacity={opacity("__structure")} style={EASE_150} fill={INK} fontSize="16">
+                <text x="112" y="215" textAnchor="start">dT/dt = −</text>
+                <text x="294" y="215" textAnchor="start">( T −</text>
+                <text x="438" y="215" textAnchor="start">)</text>
+                <text x="165" y="271" textAnchor="start">starting at T =</text>
+            </g>
+            {CHIPS.map((chip) => (
+                <rect
+                    key={`slot-${chip.id}`}
+                    x={chip.slot.x - CHIP_WIDTH / 2}
+                    y={chip.slot.y - CHIP_HEIGHT / 2}
+                    width={CHIP_WIDTH}
+                    height={CHIP_HEIGHT}
+                    rx="8"
+                    fill={PAPER}
+                    stroke={filled[chip.id] > 0.5 ? "none" : INK_QUIET}
+                    strokeWidth="1.5"
+                    strokeDasharray="5 5"
+                    opacity={opacity("__structure")}
+                    style={EASE_150}
+                />
+            ))}
+
+            {/* CHIPS group — the three numbers read straight off the situation. */}
+            <g {...hoverProps("chips")} opacity={opacity("chips")} style={EASE_150}>
+                {CHIPS.map((chip) => {
+                    const position = chipPosition(chip);
+                    const atHome = filled[chip.id] < 0.5 && dragChip !== chip.id;
+                    return (
+                        <g key={chip.id}>
+                            {isActive("chips") && (
+                                <rect
+                                    x={position.x - CHIP_WIDTH / 2 - 4}
+                                    y={position.y - CHIP_HEIGHT / 2 - 4}
+                                    width={CHIP_WIDTH + 8}
+                                    height={CHIP_HEIGHT + 8}
+                                    rx="11"
+                                    fill={ACCENT}
+                                    opacity={0.28}
+                                />
+                            )}
+                            <rect
+                                x={position.x - CHIP_WIDTH / 2}
+                                y={position.y - CHIP_HEIGHT / 2}
+                                width={CHIP_WIDTH}
+                                height={CHIP_HEIGHT}
+                                rx="8"
+                                fill={ACCENT}
+                                stroke={ACCENT}
+                                strokeWidth={weight("chips", 1.5)}
+                                filter="url(#setup-chip-shadow)"
+                                style={{ cursor: dragChip === chip.id ? "grabbing" : "grab", touchAction: "none" }}
+                                onPointerDown={handleChipDown(chip)}
+                                onPointerMove={handleChipMove(chip)}
+                                onPointerUp={handleChipUp(chip)}
+                                onPointerCancel={handleChipUp(chip)}
+                            />
+                            <text
+                                x={position.x}
+                                y={position.y + 5}
+                                fill={PAPER}
+                                fontSize="15"
+                                textAnchor="middle"
+                                style={{ pointerEvents: "none", fontVariantNumeric: "tabular-nums" }}
+                            >
+                                {chip.label}
+                            </text>
+                            {atHome && (
+                                <text x={chip.home.x} y={CHIP_ROW_Y + 42} fill={INK_STRUCTURE} fontSize="12" textAnchor="middle">
+                                    {chip.caption}
+                                </text>
+                            )}
+                        </g>
+                    );
+                })}
+            </g>
+
+            {/* The solved function, once the set-up is complete. */}
+            {complete && (
+                <text x={VIEW_WIDTH / 2} y="308" fill={ACCENT} fontSize="15" textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    T = 20 + 70 e^(−0.05 t)
+                </text>
+            )}
+
+            {/* The plot: empty until all three numbers are in. */}
+            <g opacity={opacity("curve")} style={EASE_150}>
+                <line x1={PLOT_LEFT} y1={PLOT_BOTTOM} x2={PLOT_RIGHT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
+                <line x1={PLOT_LEFT} y1={PLOT_TOP} x2={PLOT_LEFT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
+                <g fill={INK} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <text x={PLOT_LEFT - 10} y={PLOT_TOP + 4}>90°</text>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4}>55°</text>
+                    <text x={PLOT_LEFT - 10} y={PLOT_BOTTOM + 4}>20°</text>
+                </g>
+                <g fill={INK} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <text x={PLOT_LEFT} y="474" textAnchor="start">0</text>
+                    <text x={xForTime(20)} y="474" textAnchor="middle">20 min</text>
+                    <text x={PLOT_RIGHT} y="474" textAnchor="end">40</text>
+                </g>
+
+                {!complete && (
+                    <text x={VIEW_WIDTH / 2} y={yForTemp(55)} fill={INK_STRUCTURE} fontSize="12" textAnchor="middle">
+                        fill all three slots to draw the curve
+                    </text>
+                )}
+
+                {complete && (
+                    <g {...hoverProps("curve")}>
+                        {isActive("curve") && (
+                            <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3) + 6} strokeLinecap="round" opacity={0.28} />
+                        )}
+                        <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3)} strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1={markerX} y1={PLOT_BOTTOM} x2={markerX} y2={markerY} stroke={ACCENT} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
+                        <text x={VIEW_WIDTH - 24} y="344" fill={ACCENT} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                            {`at ${formatMinutes(time)}, T = ${formatTemp(tempAtTime(time))}`}
+                        </text>
+                        <g transform={`translate(${markerX} ${markerY}) scale(${markerScale})`}>
+                            <circle r="8" fill={ACCENT} filter="url(#setup-chip-shadow)" />
+                        </g>
+                        <circle
+                            cx={markerX}
+                            cy={markerY}
+                            r="24"
+                            fill="transparent"
+                            style={{ cursor: draggingMarker ? "grabbing" : "grab", touchAction: "none" }}
+                            onPointerDown={(event) => {
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                                draggingMarkerRef.current = true;
+                                setDraggingMarker(true);
+                            }}
+                            onPointerMove={handleMarkerMove}
+                            onPointerUp={() => {
+                                draggingMarkerRef.current = false;
+                                setDraggingMarker(false);
+                            }}
+                            onPointerCancel={() => {
+                                draggingMarkerRef.current = false;
+                                setDraggingMarker(false);
+                            }}
+                            onPointerEnter={() => setHoveredMarker(true)}
+                            onPointerLeave={() => setHoveredMarker(false)}
+                        />
+                    </g>
+                )}
+            </g>
+        </svg>
+    );
+}
+
+function EquationSetupFigure() {
+    const setVar = useSetVar();
+    return (
+        <Figure
+            id="cooling-application-setup"
+            onReset={() => {
+                setVar("setupStartFilled", 0);
+                setVar("setupRoomFilled", 0);
+                setVar("setupRateFilled", 0);
+                setVar("applicationTime", 20);
+                setVar("applicationHighlight", "");
+            }}
+            caption="Three numbers, read straight off the mug. Drop each one into the slot where it belongs, then drag the marker along the finished curve."
+        >
+            <EquationSetupDrawing />
+            <InteractionHintSequence
+                hintKey="cooling-application-drag-chip"
+                steps={[
+                    {
+                        gesture: "drag",
+                        label: "Drag a number down into its slot",
+                        position: { x: "41%", y: "21%" },
+                        dragPath: { type: "line", startOffset: { x: 0, y: 0 }, endOffset: { x: 34, y: 78 } },
+                    },
+                ]}
+            />
+        </Figure>
+    );
+}
 
 export const coolingMugApplicationBlocks: ReactElement[] = [
     <StackLayout key="layout-cooling-application-heading" maxWidth="xl">
@@ -18,8 +410,15 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
         <Block id="cooling-application-setup" padding="sm">
             <EditableParagraph id="para-cooling-application-setup" blockId="cooling-application-setup">
                 Now the whole thing on one real mug, start to finish. A drink poured at 90 degrees
-                into a 20-degree room, cooling with k = 0.05, needs only three numbers before its
-                curve is completely decided.
+                into a 20-degree room, cooling with k = 0.05, needs only{" "}
+                <InlineLinkedHighlight
+                    varName="applicationHighlight"
+                    highlightId="chips"
+                    {...linkedHighlightPropsFromDefinition(getVariableInfo("applicationHighlight"))}
+                >
+                    three numbers
+                </InlineLinkedHighlight>{" "}
+                before its curve is completely decided.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -30,53 +429,103 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
         </Block>
     </StackLayout>,
 
+    <StackLayout key="layout-cooling-application-invite" maxWidth="xl">
+        <Block id="cooling-application-invite" padding="sm">
+            <EditableParagraph id="para-cooling-application-invite" blockId="cooling-application-invite">
+                Drag each number out of the mug and drop it into the slot where it belongs. Once all
+                three are in, the curve appears; slide to{" "}
+                <InlineScrubbleNumber
+                    varName="applicationTime"
+                    {...numberPropsFromDefinition(getVariableInfo("applicationTime"))}
+                    formatValue={formatMinutes}
+                />{" "}
+                and read the temperature straight off it.
+            </EditableParagraph>
+        </Block>
+    </StackLayout>,
+
     <StackLayout key="layout-cooling-application-visual" maxWidth="xl">
-        <Block id="cooling-application-visual" padding="sm">
-            <VisualOptionCards
-                blockId="cooling-application-visual"
-                intro="Pick the visual students will use to set up and read the real mug."
-                cards={[
-                    {
-                        id: "predict-twenty-minute-temperature",
-                        title: "A cooling curve with everything after ten minutes hidden behind a panel",
-                        looks: "Imagine the mug's cooling curve drawn from 90 degrees, with a grey panel covering the graph from ten minutes onward. A marker sits on the panel's edge at the twenty-minute line, free to slide up and down the temperature scale.",
-                        manipulate: "Drag the marker to the temperature they expect at twenty minutes, then lift the panel to uncover the real curve",
-                        reveals: "The drink is still around 46 degrees after twenty minutes, far hotter than nearly everyone guesses.",
-                        paradigm: "prediction",
-                        recommended: true,
-                    },
-                    {
-                        id: "fill-the-equation-from-the-mug",
-                        title: "An equation with three empty slots beside the mug the numbers come from",
-                        looks: "Imagine the cooling equation written with three blank slots, and next to it a mug carrying a thermometer, a room dial and a stopwatch. Numbers lift out of the mug and drop into the slots, and the curve only appears beneath once all three are filled.",
-                        manipulate: "Drag the starting temperature, the room temperature and the cooling rate out of the mug and into the slots of the equation",
-                        reveals: "Setting up a differential equation is just reading three numbers off the real situation in front of you.",
-                        paradigm: "constructivist",
-                    },
-                    {
-                        id: "mug-versus-flask",
-                        title: "A paper cup and a metal flask cooling side by side on one desk",
-                        looks: "Imagine two containers of the same drink on a desk, each with its own thermometer, and beside them a single graph carrying both curves in matching colours. The flask's curve sags far more gently than the cup's, though both bend toward the same room line.",
-                        manipulate: "Press the lid down or lift it off either container to change how well it holds heat, and watch that curve swing while the other holds still",
-                        reveals: "Same equation, different k: the shape of the curve never changes, only how quickly it flattens.",
-                        paradigm: "comparison",
-                        secondView: {
-                            shows: "One graph carrying both containers' cooling curves against the same time axis",
-                            role: "complementary",
-                            syncedBy: "cupRate and flaskRate, plus a shared hover highlight linking each container to its own curve",
-                        },
-                    },
-                ]}
-            />
+        <Block id="cooling-application-visual" padding="sm" hasVisualization>
+            <EquationSetupFigure />
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-cooling-application-reflection" maxWidth="xl">
         <Block id="cooling-application-reflection" padding="sm">
             <EditableParagraph id="para-cooling-application-reflection" blockId="cooling-application-reflection">
-                Read the curve at twenty minutes and the drink is about 46 degrees, still too hot to
-                gulp. The same three moves work for anything that grows or decays: write the rate
-                rule, fit the starting value, then read off whichever moment you care about.
+                Twenty minutes in, the drink is still about 46 degrees, too hot to gulp. The same
+                three moves work for anything that grows or decays: write the rate rule, fit the
+                starting value, then read off whichever moment you care about.
+            </EditableParagraph>
+        </Block>
+    </StackLayout>,
+
+    <StackLayout key="layout-cooling-application-question-room" maxWidth="xl">
+        <Block id="cooling-application-question-room" padding="md">
+            <EditableParagraph id="para-cooling-application-question-room" blockId="cooling-application-question-room">
+                A pan of soup at 70 degrees is left in a 15-degree kitchen and cools with k = 0.04.
+                Written as dT/dt = −0.04 × (T − c), the number c is{" "}
+                <InlineFeedback
+                    varName="answerSoupRoom"
+                    correctValue={["15"]}
+                    position="terminal"
+                    successMessage="— right: the bracket always measures the gap to the surroundings"
+                    failureMessage="— not quite."
+                    hint="The bracket measures the gap, so it needs the kitchen's temperature"
+                    visualizationHint={{
+                        blockId: "cooling-application-visual",
+                        hintKey: "feedback-soup-room-hint",
+                        steps: [
+                            {
+                                gesture: "drag",
+                                label: "Drag the room number into the bracket after T minus",
+                                position: { x: "61%", y: "21%" },
+                                completionVar: "setupRoomFilled",
+                                completionValue: 1,
+                                completionTolerance: 0.4,
+                            },
+                            {
+                                gesture: "drag",
+                                label: "Now drop the other two in and watch the curve appear",
+                                position: { x: "41%", y: "21%" },
+                                completionVar: "setupStartFilled",
+                                completionValue: 1,
+                                completionTolerance: 0.4,
+                            },
+                        ],
+                        label: "Discover it yourself",
+                        resetVars: { setupStartFilled: 0, setupRoomFilled: 0, setupRateFilled: 0 },
+                    }}
+                >
+                    <InlineClozeInput
+                        varName="answerSoupRoom"
+                        correctAnswer={["15"]}
+                        {...clozePropsFromDefinition(getVariableInfo("answerSoupRoom"))}
+                    />
+                </InlineFeedback>.
+            </EditableParagraph>
+        </Block>
+    </StackLayout>,
+
+    <StackLayout key="layout-cooling-application-question-speed" maxWidth="xl">
+        <Block id="cooling-application-question-speed" padding="md">
+            <EditableParagraph id="para-cooling-application-question-speed" blockId="cooling-application-question-speed">
+                At the moment that soup is left there, its temperature is falling at this many degrees
+                per minute:{" "}
+                <InlineFeedback
+                    varName="answerSoupSpeed"
+                    correctValue={["2.2", "2.20", "-2.2", "-2.20"]}
+                    position="terminal"
+                    successMessage="— exactly: the gap is 55 degrees, and 0.04 × 55 = 2.2"
+                    failureMessage="— almost."
+                    hint="Work out the gap between the soup and the kitchen first, then multiply by 0.04"
+                >
+                    <InlineClozeInput
+                        varName="answerSoupSpeed"
+                        correctAnswer={["2.2", "2.20", "-2.2", "-2.20"]}
+                        {...clozePropsFromDefinition(getVariableInfo("answerSoupSpeed"))}
+                    />
+                </InlineFeedback>.
             </EditableParagraph>
         </Block>
     </StackLayout>,

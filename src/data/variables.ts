@@ -190,6 +190,78 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     },
 
     // ─────────────────────────────────────────
+    // COOLING A MUG — the set-up figure
+    // ─────────────────────────────────────────
+    setupStartFilled: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Start slot filled',
+        description: 'Whether the starting temperature has been dropped into its slot (0 or 1)',
+        min: 0,
+        max: 1,
+        step: 1,
+    },
+    setupRoomFilled: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Room slot filled',
+        description: 'Whether the room temperature has been dropped into its slot (0 or 1)',
+        min: 0,
+        max: 1,
+        step: 1,
+    },
+    setupRateFilled: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Rate slot filled',
+        description: 'Whether the cooling rate has been dropped into its slot (0 or 1)',
+        min: 0,
+        max: 1,
+        step: 1,
+    },
+    applicationTime: {
+        defaultValue: 20,
+        type: 'number',
+        label: 'Time on the finished curve',
+        description: 'Where the marker sits once all three numbers are in place',
+        unit: 'min',
+        min: 0,
+        max: 40,
+        step: 0.5,
+        color: '#62D0AD',
+    },
+    applicationHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Application view highlight',
+        description: "What is highlighted in the set-up figure: '' | 'chips' | 'curve'",
+        color: '#3FA98A',
+        bgColor: 'rgba(98, 208, 173, 0.22)',
+    },
+
+    // ─────────────────────────────────────────
+    // ASSESSMENT — Cooling a Mug
+    // ─────────────────────────────────────────
+    answerSoupRoom: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Room temperature in the soup rule',
+        description: 'Student answer: the number inside the bracket for a 15 degree kitchen',
+        placeholder: '???',
+        correctAnswer: ['15'],
+        color: '#8E90F5',
+    },
+    answerSoupSpeed: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Soup cooling speed',
+        description: 'Student answer: cooling speed of 70 degree soup in a 15 degree kitchen, k = 0.04',
+        placeholder: '???',
+        correctAnswer: ['2.2', '2.20', '-2.2', '-2.20'],
+        color: '#8E90F5',
+    },
+
+    // ─────────────────────────────────────────
     // ASSESSMENT — Guessing a Solution and Checking It
     // ─────────────────────────────────────────
     answerGrowthSolution: {
