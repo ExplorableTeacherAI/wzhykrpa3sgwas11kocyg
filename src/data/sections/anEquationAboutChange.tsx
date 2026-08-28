@@ -563,7 +563,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
 
     <StackLayout key="layout-block-1787908235539" maxWidth="xl">
         <Block id="block-1787908235539" padding="sm">
-            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">A drink sitting at 50 degree in the 20 degree room with k=0.05. its cooling speed</EditableParagraph>
+            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">A drink sitting at 50 degree in the 20 degree room with k=0.05. its cooling speed   <InlineClozeInput varName={"var_inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"} correctAnswer={"1"} placeholder={"_____"} color={"#D81B60"} bgColor={"rgba(59, 130, 246, 0.35)"} caseSensitive={false} id={"inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"} /></EditableParagraph>
         </Block>
     </StackLayout>,
 ];
