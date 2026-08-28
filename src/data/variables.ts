@@ -111,6 +111,74 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     },
 
     // ─────────────────────────────────────────
+    // RATE IS NOT AMOUNT — the prediction figure
+    // ─────────────────────────────────────────
+    mugTemp: {
+        defaultValue: 90,
+        type: 'number',
+        label: 'Drink temperature',
+        description: 'Current temperature of the drink in the two-bar prediction figure',
+        unit: '°C',
+        min: 25,
+        max: 90,
+        step: 0.5,
+        color: '#62D0AD',
+    },
+    predictedSpeed: {
+        defaultValue: 3.5,
+        type: 'number',
+        label: 'Predicted cooling speed',
+        description: 'Where the student places the faint marker before the clock runs',
+        unit: '°/min',
+        min: 0,
+        max: 3.5,
+        step: 0.05,
+        color: '#94A3B8',
+    },
+    ratePredictionRevealed: {
+        defaultValue: false,
+        type: 'boolean',
+        label: 'Prediction revealed',
+        description: 'Whether the drink has been cooled to halfway and the true speed shown',
+    },
+    ratePlaying: {
+        defaultValue: false,
+        type: 'boolean',
+        label: 'Cooling run playing',
+        description: 'Whether the drink is currently cooling in the prediction figure',
+    },
+    rateViewHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Rate view highlight',
+        description: "Which quantity is highlighted in the two-bar figure: '' | 'warmth' | 'gap'",
+        color: '#3FA98A',
+        bgColor: 'rgba(98, 208, 173, 0.22)',
+    },
+
+    // ─────────────────────────────────────────
+    // ASSESSMENT — Rate Is Not Amount
+    // ─────────────────────────────────────────
+    answerGapSpeed: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Cooling speed at 40 degrees',
+        description: 'Student answer: cooling speed of a 40 degree drink in a 20 degree room',
+        placeholder: '???',
+        correctAnswer: ['1', '1.0', '-1', '-1.0'],
+        color: '#8E90F5',
+    },
+    answerSpeedRatio: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Speed ratio of two drinks',
+        description: 'Student answer: how many times faster the 80 degree drink cools than the 50 degree one',
+        placeholder: '???',
+        correctAnswer: ['2', '2.0', 'twice', 'two'],
+        color: '#8E90F5',
+    },
+
+    // ─────────────────────────────────────────
     // ASSESSMENT — An Equation About How Fast Things Change
     // ─────────────────────────────────────────
     answerRateMeaning: {
