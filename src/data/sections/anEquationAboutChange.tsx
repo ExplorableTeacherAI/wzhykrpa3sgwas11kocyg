@@ -563,7 +563,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
 
     <StackLayout key="layout-block-1787908235539" maxWidth="xl">
         <Block id="block-1787908235539" padding="sm">
-            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">A drink sitting at 50 degree in the 20 degree room with k=0.05. its cooling sp</EditableParagraph>
+            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">A drink sitting at 50 degree in the 20 degree room with k=0.05. its cooling spee</EditableParagraph>
         </Block>
     </StackLayout>,
 ];
