@@ -5,6 +5,14 @@ import { type ReactElement } from "react";
 // Initialize variables and their colors from this file's variable definitions
 import { useVariableStore, initializeVariableColors } from "@/stores";
 import { getDefaultValues, variableDefinitions } from "./variables";
+
+// Lesson sections
+import { introducingDifferentialEquationsBlocks } from "./sections/introducingDifferentialEquations";
+import { anEquationAboutChangeBlocks } from "./sections/anEquationAboutChange";
+import { rateIsNotAmountBlocks } from "./sections/rateIsNotAmount";
+import { guessAndCheckBlocks } from "./sections/guessAndCheck";
+import { coolingMugApplicationBlocks } from "./sections/coolingMugApplication";
+import { wrappingUpBlocks } from "./sections/wrappingUp";
 useVariableStore.getState().initialize(getDefaultValues());
 initializeVariableColors(variableDefinitions);
 
@@ -85,5 +93,10 @@ initializeVariableColors(variableDefinitions);
  */
 
 export const blocks: ReactElement[] = [
-    // Start adding your blocks here!
+    ...introducingDifferentialEquationsBlocks,
+    ...anEquationAboutChangeBlocks,
+    ...rateIsNotAmountBlocks,
+    ...guessAndCheckBlocks,
+    ...coolingMugApplicationBlocks,
+    ...wrappingUpBlocks,
 ];
