@@ -496,8 +496,8 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
                     correctValue="the speed the drink is cooling"
                     position="terminal"
                     successMessage="— yes, and it is measured in degrees per minute, not in degrees"
-                    failureMessage="— not quite."
-                    hint="The rule gives a speed, and the temperature is what follows from it"
+                    failureMessage="— not quite: it is the speed the drink is cooling, in degrees per minute."
+                    hint="The temperature is not in the rule at all, it is what follows from that speed"
                     visualizationHint={{
                         blockId: "rate-rule-graph",
                         hintKey: "feedback-rate-meaning-hint",
