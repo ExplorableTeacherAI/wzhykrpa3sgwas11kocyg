@@ -82,6 +82,94 @@ export interface VariableDefinition {
  */
 export const variableDefinitions: Record<string, VariableDefinition> = {
     // ─────────────────────────────────────────
+    // WHAT MAKES IT A DIFFERENTIAL EQUATION — the sorting trays
+    // ─────────────────────────────────────────
+    eqTrayFirstOrderLinear: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of dy/dx = 3y',
+        description: 'Which tray the "dy/dx = 3y" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    eqTrayPlainLine: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of y = 3x + 1',
+        description: 'Which tray the "y = 3x + 1" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    eqTraySecondOrder: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of d2y/dx2 + y = 0',
+        description: 'Which tray the "d2y/dx2 + y = 0" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    eqTraySquaredDerivative: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of (dy/dx)2 = y',
+        description: 'Which tray the "(dy/dx)2 = y" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    eqTrayCircle: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of x2 + y2 = 25',
+        description: 'Which tray the "x2 + y2 = 25" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    eqTrayFallingObject: {
+        defaultValue: -1,
+        type: 'number',
+        label: 'Tray of d2s/dt2 = -g',
+        description: 'Which tray the "d2s/dt2 = -g" card sits in: -1 pile, 0 none, 1 first order, 2 second order',
+        min: -1,
+        max: 2,
+        step: 1,
+    },
+    definitionHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Definition view highlight',
+        description: "What is highlighted in the sorting figure: '' | 'derivatives' | 'trays'",
+        color: '#3FA98A',
+        bgColor: 'rgba(98, 208, 173, 0.22)',
+    },
+
+    // ─────────────────────────────────────────
+    // ASSESSMENT — What Makes It a Differential Equation
+    // ─────────────────────────────────────────
+    answerThirdOrder: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Order of a third derivative equation',
+        description: 'Student answer: the order of d3y/dx3 + 2y = x',
+        placeholder: '???',
+        correctAnswer: ['3', 'three', 'third'],
+        color: '#8E90F5',
+    },
+    answerCubedDerivative: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Order of a cubed first derivative',
+        description: 'Student answer: the order of (dy/dx)3 = y + 1',
+        placeholder: '???',
+        correctAnswer: ['1', 'one', 'first'],
+        color: '#8E90F5',
+    },
+
+    // ─────────────────────────────────────────
     // COOLING MUG — shared by the linked pair
     // ─────────────────────────────────────────
     coolingTime: {
