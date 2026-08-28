@@ -29,8 +29,8 @@ export const wrappingUpBlocks: ReactElement[] = [
                 You wrote the cooling rule, tested a guess by differentiating it, and used the
                 starting temperature to pick out the one curve belonging to your drink. Those same
                 three moves describe a population growing, a drug leaving the bloodstream and a phone
-                battery draining. Next comes the machinery for finding those functions without
-                guessing, and it turns out to be integration wearing a new disguise.
+                battery draining. Next comes the machinery for finding those
+                functions without guessing: integration in a new disguise.
             </EditableParagraph>
         </Block>
     </StackLayout>,

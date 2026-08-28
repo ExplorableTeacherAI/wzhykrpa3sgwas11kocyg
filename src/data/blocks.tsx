@@ -8,6 +8,7 @@ import { getDefaultValues, variableDefinitions } from "./variables";
 
 // Lesson sections
 import { introducingDifferentialEquationsBlocks } from "./sections/introducingDifferentialEquations";
+import { whatIsADifferentialEquationBlocks } from "./sections/whatIsADifferentialEquation";
 import { anEquationAboutChangeBlocks } from "./sections/anEquationAboutChange";
 import { rateIsNotAmountBlocks } from "./sections/rateIsNotAmount";
 import { guessAndCheckBlocks } from "./sections/guessAndCheck";
@@ -94,6 +95,7 @@ initializeVariableColors(variableDefinitions);
 
 export const blocks: ReactElement[] = [
     ...introducingDifferentialEquationsBlocks,
+    ...whatIsADifferentialEquationBlocks,
     ...anEquationAboutChangeBlocks,
     ...rateIsNotAmountBlocks,
     ...guessAndCheckBlocks,
