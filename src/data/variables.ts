@@ -157,6 +157,62 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     },
 
     // ─────────────────────────────────────────
+    // GUESS AND CHECK — the slope-field figure
+    // ─────────────────────────────────────────
+    guessStartGap: {
+        defaultValue: 40,
+        type: 'number',
+        label: 'Starting gap',
+        description: 'How far above the room the guessed curve starts, the A in 20 + A e^(-kt)',
+        unit: '°C',
+        min: 10,
+        max: 70,
+        step: 0.5,
+        color: '#62D0AD',
+    },
+    guessK: {
+        defaultValue: 0.09,
+        type: 'number',
+        label: 'Steepness',
+        description: 'The k inside the guessed curve; the arrows only agree when it equals 0.05',
+        min: 0.01,
+        max: 0.15,
+        step: 0.001,
+        color: '#62D0AD',
+    },
+    guessViewHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Guess view highlight',
+        description: "What is highlighted in the slope-field figure: '' | 'curve' | 'field'",
+        color: '#3FA98A',
+        bgColor: 'rgba(98, 208, 173, 0.22)',
+    },
+
+    // ─────────────────────────────────────────
+    // ASSESSMENT — Guessing a Solution and Checking It
+    // ─────────────────────────────────────────
+    answerGrowthSolution: {
+        defaultValue: '',
+        type: 'select',
+        label: 'Solution of a growth rule',
+        description: 'Student answer: which function solves dP/dt = 0.03P',
+        placeholder: '???',
+        correctAnswer: '200e^(0.03t)',
+        options: ['200e^(0.03t)', '200e^(3t)', '0.03t + 200'],
+        color: '#8E90F5',
+    },
+    answerExponentValue: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Multiplier from differentiating',
+        description: 'Student answer: the c in dT/dt = c(T - 20) for T = 20 + 40e^(-0.02t)',
+        placeholder: '???',
+        correctAnswer: ['-0.02', '-0.020', '-.02'],
+        color: '#8E90F5',
+    },
+
+    // ─────────────────────────────────────────
     // ASSESSMENT — Rate Is Not Amount
     // ─────────────────────────────────────────
     answerGapSpeed: {
