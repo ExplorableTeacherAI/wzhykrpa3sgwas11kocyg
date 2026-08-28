@@ -1,4 +1,611 @@
 {
-  "version": 2,
-  "blockIds": []
+  "version": 3,
+  "blockIds": [
+    "orientation-title",
+    "orientation-hook",
+    "orientation-promise",
+    "definition-heading",
+    "definition-setup",
+    "definition-examples",
+    "definition-invite",
+    "definition-visual",
+    "definition-reflection",
+    "definition-question-third",
+    "definition-question-cubed",
+    "rate-rule-heading",
+    "rate-rule-setup",
+    "rate-rule-formula",
+    "rate-rule-invite",
+    "rate-rule-visual",
+    "rate-rule-graph",
+    "rate-rule-reflection",
+    "rate-rule-question-meaning",
+    "rate-rule-question-speed",
+    "block-1787908235539",
+    "rate-versus-amount-heading",
+    "rate-versus-amount-setup",
+    "rate-versus-amount-visual",
+    "rate-versus-amount-reflection",
+    "rate-versus-amount-question-gap",
+    "rate-versus-amount-question-ratio",
+    "guess-and-check-heading",
+    "guess-and-check-setup",
+    "guess-and-check-guess",
+    "guess-and-check-derivative",
+    "guess-and-check-invite",
+    "guess-and-check-visual",
+    "guess-and-check-reflection",
+    "guess-and-check-question-growth",
+    "guess-and-check-question-exponent",
+    "cooling-application-heading",
+    "cooling-application-setup",
+    "cooling-application-formula",
+    "cooling-application-invite",
+    "cooling-application-visual",
+    "cooling-application-reflection",
+    "cooling-application-question-room",
+    "cooling-application-question-speed",
+    "wrapping-up-heading",
+    "wrapping-up-closing",
+    "wrapping-up-onward"
+  ],
+  "rows": [
+    {
+      "id": "layout-orientation-title",
+      "type": "stack",
+      "columns": [
+        [
+          "orientation-title"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-orientation-hook",
+      "type": "stack",
+      "columns": [
+        [
+          "orientation-hook"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-orientation-promise",
+      "type": "stack",
+      "columns": [
+        [
+          "orientation-promise"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-examples",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-examples"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-invite",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-invite"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-visual",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-visual"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-reflection",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-reflection"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-question-third",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-question-third"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-definition-question-cubed",
+      "type": "stack",
+      "columns": [
+        [
+          "definition-question-cubed"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-formula",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-formula"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-invite",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-invite"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-visual",
+      "type": "split",
+      "columns": [
+        [
+          "rate-rule-visual"
+        ],
+        [
+          "rate-rule-graph"
+        ]
+      ],
+      "props": {
+        "ratio": "1:1",
+        "gap": "lg",
+        "align": "start"
+      }
+    },
+    {
+      "id": "layout-rate-rule-reflection",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-reflection"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-question-meaning",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-question-meaning"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-rule-question-speed",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-rule-question-speed"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-block-1787908235539",
+      "type": "stack",
+      "columns": [
+        [
+          "block-1787908235539"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-visual",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-visual"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-reflection",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-reflection"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-question-gap",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-question-gap"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-rate-versus-amount-question-ratio",
+      "type": "stack",
+      "columns": [
+        [
+          "rate-versus-amount-question-ratio"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-guess",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-guess"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-derivative",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-derivative"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-invite",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-invite"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-visual",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-visual"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-reflection",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-reflection"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-question-growth",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-question-growth"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-guess-and-check-question-exponent",
+      "type": "stack",
+      "columns": [
+        [
+          "guess-and-check-question-exponent"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-formula",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-formula"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-invite",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-invite"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-visual",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-visual"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-reflection",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-reflection"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-question-room",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-question-room"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-cooling-application-question-speed",
+      "type": "stack",
+      "columns": [
+        [
+          "cooling-application-question-speed"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-closing",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-closing"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-onward",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-onward"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    }
+  ]
 }
