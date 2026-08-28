@@ -81,9 +81,61 @@ export interface VariableDefinition {
  *    { defaultValue: { x: 5, y: 10 }, type: 'object', schema: '{ x: number, y: number }' }
  */
 export const variableDefinitions: Record<string, VariableDefinition> = {
-    // ========================================
-    // ADD YOUR VARIABLES HERE
-    // ========================================
+    // ─────────────────────────────────────────
+    // COOLING MUG — shared by the linked pair
+    // ─────────────────────────────────────────
+    coolingTime: {
+        defaultValue: 8,
+        type: 'number',
+        label: 'Time',
+        description: 'Minutes since the drink was poured; shared by the mug and the graph',
+        unit: 'min',
+        min: 0,
+        max: 40,
+        step: 0.5,
+        color: '#62D0AD',
+    },
+    coolingViewHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Cooling view highlight',
+        description: "Which quantity is highlighted across both cooling views: '' | 'temperature' | 'time'",
+        color: '#3FA98A',
+        bgColor: 'rgba(98, 208, 173, 0.22)',
+    },
+    coolingPlaying: {
+        defaultValue: false,
+        type: 'boolean',
+        label: 'Cooling sweep playing',
+        description: 'Whether the shared cooling clock is running automatically',
+    },
+
+    // ─────────────────────────────────────────
+    // ASSESSMENT — An Equation About How Fast Things Change
+    // ─────────────────────────────────────────
+    answerRateMeaning: {
+        defaultValue: '',
+        type: 'select',
+        label: 'What dT/dt means',
+        description: 'Student answer: what the left-hand side of the cooling rule stands for',
+        placeholder: '???',
+        correctAnswer: 'the speed the drink is cooling',
+        options: [
+            'the speed the drink is cooling',
+            'the temperature of the drink',
+            'the time on the clock',
+        ],
+        color: '#8E90F5',
+    },
+    answerCoolingSpeed: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Cooling speed at 60 degrees',
+        description: 'Student answer: cooling speed in degrees per minute for a 60 degree drink',
+        placeholder: '???',
+        correctAnswer: ['2', '2.0', '-2', '-2.0'],
+        color: '#8E90F5',
+    },
 
     // Uncomment and modify these examples for your lesson:
 
