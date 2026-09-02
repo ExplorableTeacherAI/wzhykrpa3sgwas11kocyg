@@ -6,8 +6,12 @@ import {
     EditableParagraph,
     InlineClozeInput,
     InlineFeedback,
+    InlineFormula,
     InlineLinkedHighlight,
     InlineScrubbleNumber,
+    InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
 } from "@/components/atoms";
 import { Figure, FormulaBlock } from "@/components/molecules";
@@ -16,9 +20,10 @@ import { clamp, remap, useSpring, type Vec2 } from "@/lib/motion";
 import {
     clozePropsFromDefinition,
     getVariableInfo,
-    linkedHighlightPropsFromDefinition,
     numberPropsFromDefinition,
+    spotColorPropsFromDefinition,
 } from "../variables";
+import { QUANTITY, hue, tint } from "../lessonColors";
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +56,16 @@ const yForTemp = (T: number) =>
 const INK = "#334155";
 const INK_STRUCTURE = "#64748B";
 const INK_QUIET = "#CBD5E1";
-const ACCENT = "#62D0AD";
+/** Teal: the drink's temperature and the curve it traces. */
+const TEMPERATURE = QUANTITY.temperature;
+/** Violet: the rate on the left of the rule. */
+const RATE = QUANTITY.rate;
+/** Sky: the room. */
+const ROOM = QUANTITY.room;
+/** Rose: the steepness k. */
+const STEEPNESS = QUANTITY.steepness;
+/** Indigo: the clock. */
+const TIME = QUANTITY.time;
 const PAPER = "#FFFFFF";
 
 const formatMinutes = (v: number) => `${v.toFixed(1)} min`;
@@ -66,6 +80,8 @@ interface ChipSpec {
     varName: string;
     label: string;
     caption: string;
+    /** The hue of the quantity this number is, used everywhere it appears. */
+    color: string;
     home: Vec2;
     slot: Vec2;
 }
@@ -76,6 +92,7 @@ const CHIPS: ChipSpec[] = [
         varName: "setupRateFilled",
         label: "0.05",
         caption: "per minute",
+        color: STEEPNESS,
         home: { x: 450, y: CHIP_ROW_Y },
         slot: { x: 246, y: 209 },
     },
@@ -84,6 +101,7 @@ const CHIPS: ChipSpec[] = [
         varName: "setupRoomFilled",
         label: "20°C",
         caption: "room",
+        color: ROOM,
         home: { x: 340, y: CHIP_ROW_Y },
         slot: { x: 390, y: 209 },
     },
@@ -92,6 +110,7 @@ const CHIPS: ChipSpec[] = [
         varName: "setupStartFilled",
         label: "90°C",
         caption: "poured at",
+        color: TEMPERATURE,
         home: { x: 230, y: CHIP_ROW_Y },
         slot: { x: 357, y: 265 },
     },
@@ -219,11 +238,22 @@ function EquationSetupDrawing() {
             </g>
 
             {/* The equation, with three slots waiting to be filled. */}
-            <g opacity={opacity("__structure")} style={EASE_150} fill={INK} fontSize="16">
-                <text x="112" y="215" textAnchor="start">dT/dt = −</text>
-                <text x="294" y="215" textAnchor="start">( T −</text>
-                <text x="438" y="215" textAnchor="start">)</text>
-                <text x="165" y="271" textAnchor="start">starting at T =</text>
+            <g opacity={opacity("__structure")} style={EASE_150} fontSize="16">
+                <text x="112" y="215" textAnchor="start">
+                    <tspan fill={RATE}>dT/dt</tspan>
+                    <tspan fill={INK}> = −</tspan>
+                </text>
+                <text x="294" y="215" textAnchor="start">
+                    <tspan fill={INK}>( </tspan>
+                    <tspan fill={TEMPERATURE}>T</tspan>
+                    <tspan fill={INK}> −</tspan>
+                </text>
+                <text x="438" y="215" textAnchor="start" fill={INK}>)</text>
+                <text x="165" y="271" textAnchor="start">
+                    <tspan fill={INK}>starting at </tspan>
+                    <tspan fill={TEMPERATURE}>T</tspan>
+                    <tspan fill={INK}> =</tspan>
+                </text>
             </g>
             {CHIPS.map((chip) => (
                 <rect
@@ -256,7 +286,7 @@ function EquationSetupDrawing() {
                                     width={CHIP_WIDTH + 8}
                                     height={CHIP_HEIGHT + 8}
                                     rx="11"
-                                    fill={ACCENT}
+                                    fill={chip.color}
                                     opacity={0.28}
                                 />
                             )}
@@ -266,8 +296,8 @@ function EquationSetupDrawing() {
                                 width={CHIP_WIDTH}
                                 height={CHIP_HEIGHT}
                                 rx="8"
-                                fill={ACCENT}
-                                stroke={ACCENT}
+                                fill={chip.color}
+                                stroke={chip.color}
                                 strokeWidth={weight("chips", 1.5)}
                                 filter="url(#setup-chip-shadow)"
                                 style={{ cursor: dragChip === chip.id ? "grabbing" : "grab", touchAction: "none" }}
@@ -298,21 +328,30 @@ function EquationSetupDrawing() {
 
             {/* The solved function, once the set-up is complete. */}
             {complete && (
-                <text x={VIEW_WIDTH / 2} y="308" fill={ACCENT} fontSize="15" textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    T = 20 + 70 e^(−0.05 t)
+                <text x={VIEW_WIDTH / 2} y="308" fontSize="15" textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <tspan fill={TEMPERATURE}>T</tspan>
+                    <tspan fill={INK}> = </tspan>
+                    <tspan fill={ROOM}>20</tspan>
+                    <tspan fill={INK}> + </tspan>
+                    <tspan fill={TEMPERATURE}>70</tspan>
+                    <tspan fill={INK}> e^(−</tspan>
+                    <tspan fill={STEEPNESS}>0.05</tspan>
+                    <tspan fill={INK}> </tspan>
+                    <tspan fill={TIME}>t</tspan>
+                    <tspan fill={INK}>)</tspan>
                 </text>
             )}
 
             {/* The plot: empty until all three numbers are in. */}
             <g opacity={opacity("curve")} style={EASE_150}>
-                <line x1={PLOT_LEFT} y1={PLOT_BOTTOM} x2={PLOT_RIGHT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
+                <line x1={PLOT_LEFT} y1={PLOT_BOTTOM} x2={PLOT_RIGHT} y2={PLOT_BOTTOM} stroke={ROOM} strokeWidth="1.5" />
                 <line x1={PLOT_LEFT} y1={PLOT_TOP} x2={PLOT_LEFT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
-                <g fill={INK} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    <text x={PLOT_LEFT - 10} y={PLOT_TOP + 4}>90°</text>
-                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4}>55°</text>
-                    <text x={PLOT_LEFT - 10} y={PLOT_BOTTOM + 4}>20°</text>
+                <g fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <text x={PLOT_LEFT - 10} y={PLOT_TOP + 4} fill={TEMPERATURE}>90°</text>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4} fill={TEMPERATURE}>55°</text>
+                    <text x={PLOT_LEFT - 10} y={PLOT_BOTTOM + 4} fill={ROOM}>20°</text>
                 </g>
-                <g fill={INK} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <g fill={TIME} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
                     <text x={PLOT_LEFT} y="474" textAnchor="start">0</text>
                     <text x={xForTime(20)} y="474" textAnchor="middle">20 min</text>
                     <text x={PLOT_RIGHT} y="474" textAnchor="end">40</text>
@@ -327,15 +366,15 @@ function EquationSetupDrawing() {
                 {complete && (
                     <g {...hoverProps("curve")}>
                         {isActive("curve") && (
-                            <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3) + 6} strokeLinecap="round" opacity={0.28} />
+                            <path d={curvePath} fill="none" stroke={TEMPERATURE} strokeWidth={weight("curve", 3) + 6} strokeLinecap="round" opacity={0.28} />
                         )}
-                        <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3)} strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1={markerX} y1={PLOT_BOTTOM} x2={markerX} y2={markerY} stroke={ACCENT} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
-                        <text x={VIEW_WIDTH - 24} y="344" fill={ACCENT} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        <path d={curvePath} fill="none" stroke={TEMPERATURE} strokeWidth={weight("curve", 3)} strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1={markerX} y1={PLOT_BOTTOM} x2={markerX} y2={markerY} stroke={TEMPERATURE} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
+                        <text x={VIEW_WIDTH - 24} y="344" fill={TEMPERATURE} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
                             {`at ${formatMinutes(time)}, T = ${formatTemp(tempAtTime(time))}`}
                         </text>
                         <g transform={`translate(${markerX} ${markerY}) scale(${markerScale})`}>
-                            <circle r="8" fill={ACCENT} filter="url(#setup-chip-shadow)" />
+                            <circle r="8" fill={TEMPERATURE} filter="url(#setup-chip-shadow)" />
                         </g>
                         <circle
                             cx={markerX}
@@ -379,7 +418,7 @@ function EquationSetupFigure() {
                 setVar("applicationTime", 20);
                 setVar("applicationHighlight", "");
             }}
-            caption="Three numbers, read straight off the mug. Drop each one into the slot where it belongs, then drag the marker along the finished curve."
+            caption="Three numbers, each in the colour of what it measures: teal for the drink, sky blue for the room, rose for the steepness. Drop each into the slot where it belongs, then drag the marker along the finished curve."
         >
             <EquationSetupDrawing />
             <InteractionHintSequence
@@ -401,7 +440,7 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
     <StackLayout key="layout-cooling-application-heading" maxWidth="xl">
         <Block id="cooling-application-heading" padding="md">
             <EditableH2 id="h2-cooling-application-heading" blockId="cooling-application-heading">
-                Cooling a Mug: Setting Up and Solving
+                Initial Conditions and the Particular Solution
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -409,12 +448,24 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
     <StackLayout key="layout-cooling-application-setup" maxWidth="xl">
         <Block id="cooling-application-setup" padding="sm">
             <EditableParagraph id="para-cooling-application-setup" blockId="cooling-application-setup">
-                Now the whole thing on one real mug, start to finish. A drink poured at 90 degrees
-                into a 20-degree room, cooling with k = 0.05, needs only{" "}
+                Now the whole thing on one real mug, start to finish. A drink{" "}
+                <InlineSpotColor varName="symbolTemperature" {...spotColorPropsFromDefinition(getVariableInfo("symbolTemperature"))}>
+                    poured at 90 degrees
+                </InlineSpotColor>{" "}
+                into a{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    20-degree room
+                </InlineSpotColor>
+                , cooling with a steepness of{" "}
+                <InlineSpotColor varName="symbolSteepness" {...spotColorPropsFromDefinition(getVariableInfo("symbolSteepness"))}>
+                    0.05
+                </InlineSpotColor>
+                , needs only those{" "}
                 <InlineLinkedHighlight
+                    id="link-cooling-application-chips"
                     varName="applicationHighlight"
                     highlightId="chips"
-                    {...linkedHighlightPropsFromDefinition(getVariableInfo("applicationHighlight"))}
+                    {...hue("temperature")}
                 >
                     three numbers
                 </InlineLinkedHighlight>{" "}
@@ -425,21 +476,41 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
 
     <StackLayout key="layout-cooling-application-formula" maxWidth="xl">
         <Block id="cooling-application-formula" padding="lg">
-            <FormulaBlock latex="T = T_{room} + (T_0 - T_{room})\,e^{-kt}" />
+            <FormulaBlock
+                latex="\clr{temperature}{T} = \clr{room}{T}_{\clr{room}{room}} + (\clr{temperature}{T_0} - \clr{room}{T}_{\clr{room}{room}})\,e^{-\clr{steepness}{k}\,\clr{time}{t}}"
+                colorMap={{
+                    temperature: QUANTITY.temperature,
+                    room: QUANTITY.room,
+                    steepness: QUANTITY.steepness,
+                    time: QUANTITY.time,
+                }}
+            />
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-cooling-application-invite" maxWidth="xl">
         <Block id="cooling-application-invite" padding="sm">
             <EditableParagraph id="para-cooling-application-invite" blockId="cooling-application-invite">
-                Drag each number out of the mug and drop it into the slot where it belongs. Once all
-                three are in, the curve appears; slide to{" "}
+                Drag each coloured number out of the mug and drop it into the slot where it belongs.
+                Once all three are in, the{" "}
+                <InlineLinkedHighlight
+                    id="link-cooling-application-curve"
+                    varName="applicationHighlight"
+                    highlightId="curve"
+                    {...hue("temperature")}
+                >
+                    curve
+                </InlineLinkedHighlight>{" "}
+                appears; slide to{" "}
                 <InlineScrubbleNumber
                     varName="applicationTime"
                     {...numberPropsFromDefinition(getVariableInfo("applicationTime"))}
                     formatValue={formatMinutes}
                 />{" "}
-                and read the temperature straight off it.
+                and read the temperature straight off it, or jump to the moment it is{" "}
+                <InlineTrigger id="trigger-cooling-application-drinkable" varName="applicationTime" value={30} icon="play">
+                    finally drinkable
+                </InlineTrigger>.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -454,8 +525,14 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
         <Block id="cooling-application-reflection" padding="sm">
             <EditableParagraph id="para-cooling-application-reflection" blockId="cooling-application-reflection">
                 Twenty minutes in, the drink is still about 46 degrees, too hot to gulp. The same
-                three moves work for anything that grows or decays: write the rate rule, fit the
-                starting value, then read off whichever moment you care about.
+                three moves work for anything that grows or decays: write the rate law, apply the{" "}
+                <InlineTooltip
+                    id="tooltip-cooling-application-initial"
+                    tooltip="The initial condition: the one measurement that picks a single curve, the particular solution, out of the whole family the rule allows."
+                >
+                    initial condition
+                </InlineTooltip>{" "}
+                to pick out the particular solution, then read off whichever moment you care about.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -463,8 +540,27 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
     <StackLayout key="layout-cooling-application-question-room" maxWidth="xl">
         <Block id="cooling-application-question-room" padding="md">
             <EditableParagraph id="para-cooling-application-question-room" blockId="cooling-application-question-room">
-                A pan of soup at 70 degrees is left in a 15-degree kitchen and cools with k = 0.04.
-                Written as dT/dt = −0.04 × (T − c), the number c is{" "}
+                A pan of soup at 70 degrees is left in a{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    15-degree kitchen
+                </InlineSpotColor>{" "}
+                and cools with{" "}
+                <InlineFormula latex="\clr{steepness}{k} = \clr{steepness}{0.04}" colorMap={{ steepness: QUANTITY.steepness }} />. Written as{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}} = -\clr{steepness}{0.04}\,(\clr{temperature}{T} - \clr{room}{c})"
+                    colorMap={{
+                        rate: QUANTITY.rate,
+                        time: QUANTITY.time,
+                        steepness: QUANTITY.steepness,
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                    }}
+                />
+                , the number{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    c
+                </InlineSpotColor>{" "}
+                is{" "}
                 <InlineFeedback
                     varName="answerSoupRoom"
                     correctValue={["15"]}
@@ -478,7 +574,7 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
                         steps: [
                             {
                                 gesture: "drag",
-                                label: "Drag the room number into the bracket after T minus",
+                                label: "Drag the sky-blue room number into the bracket after T minus",
                                 position: { x: "61%", y: "21%" },
                                 completionVar: "setupRoomFilled",
                                 completionValue: 1,
@@ -501,6 +597,7 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
                         varName="answerSoupRoom"
                         correctAnswer={["15"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerSoupRoom"))}
+                        bgColor={tint(QUANTITY.room, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -524,6 +621,7 @@ export const coolingMugApplicationBlocks: ReactElement[] = [
                         varName="answerSoupSpeed"
                         correctAnswer={["2.2", "2.20", "-2.2", "-2.20"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerSoupSpeed"))}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>

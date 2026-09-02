@@ -6,7 +6,12 @@ import {
     EditableParagraph,
     InlineClozeInput,
     InlineFeedback,
+    InlineFormula,
     InlineLinkedHighlight,
+    InlineScrubbleNumber,
+    InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
 } from "@/components/atoms";
 import { Figure } from "@/components/molecules";
@@ -15,8 +20,10 @@ import { clamp, useRafLoop, useSpring, type Vec2 } from "@/lib/motion";
 import {
     clozePropsFromDefinition,
     getVariableInfo,
-    linkedHighlightPropsFromDefinition,
+    numberPropsFromDefinition,
+    spotColorPropsFromDefinition,
 } from "../variables";
+import { QUANTITY, hue, tint } from "../lessonColors";
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -49,8 +56,14 @@ const yForSpeed = (s: number) => BAR_BOTTOM - (s / MAX_SPEED) * BAR_SPAN;
 const INK = "#334155";
 const INK_STRUCTURE = "#64748B";
 const INK_QUIET = "#CBD5E1";
-const ACCENT = "#62D0AD";
-const GHOST = "#94A3B8";
+/** Teal: how warm the drink is, and the gap it still has to lose. */
+const TEMPERATURE = QUANTITY.temperature;
+/** Violet: how fast it is cooling. */
+const RATE = QUANTITY.rate;
+/** Sky: the room. */
+const ROOM = QUANTITY.room;
+/** Slate: a guess not yet checked. */
+const GHOST = QUANTITY.guess;
 
 const formatTemp = (v: number) => `${v.toFixed(1)}°C`;
 const formatSpeed = (v: number) => `${v.toFixed(2)}°/min`;
@@ -201,8 +214,8 @@ function RateVersusAmountDrawing() {
                 <text x={WARMTH_X + BAR_HALF + 18} y={yForTemp(HALFWAY_TEMP) + 4} fill={INK} fontSize="12" textAnchor="start">
                     halfway
                 </text>
-                <line x1={WARMTH_X - BAR_HALF - 6} y1={roomY} x2={WARMTH_X + BAR_HALF + 6} y2={roomY} stroke={INK_QUIET} strokeWidth="1.5" strokeDasharray="4 4" />
-                <text x={WARMTH_X + BAR_HALF + 18} y={roomY + 4} fill={INK} fontSize="12" textAnchor="start">
+                <line x1={WARMTH_X - BAR_HALF - 6} y1={roomY} x2={WARMTH_X + BAR_HALF + 6} y2={roomY} stroke={ROOM} strokeWidth="1.5" strokeDasharray="4 4" />
+                <text x={WARMTH_X + BAR_HALF + 18} y={roomY + 4} fill={ROOM} fontSize="12" textAnchor="start">
                     room 20°
                 </text>
             </g>
@@ -224,13 +237,13 @@ function RateVersusAmountDrawing() {
             <g {...hoverProps("gap")} opacity={opacity("gap")} style={EASE_150}>
                 {isActive("gap") && (
                     <g opacity={0.28}>
-                        <rect x={WARMTH_X - BAR_HALF - 3} y={warmthTop - 3} width={BAR_HALF * 2 + 6} height={roomY - warmthTop + 6} rx="7" fill={ACCENT} />
-                        <rect x={SPEED_X - BAR_HALF - 3} y={speedTop - 3} width={BAR_HALF * 2 + 6} height={BAR_BOTTOM - speedTop + 6} rx="7" fill={ACCENT} />
+                        <rect x={WARMTH_X - BAR_HALF - 3} y={warmthTop - 3} width={BAR_HALF * 2 + 6} height={roomY - warmthTop + 6} rx="7" fill={TEMPERATURE} />
+                        <rect x={SPEED_X - BAR_HALF - 3} y={speedTop - 3} width={BAR_HALF * 2 + 6} height={BAR_BOTTOM - speedTop + 6} rx="7" fill={RATE} />
                     </g>
                 )}
-                <rect x={WARMTH_X - BAR_HALF + 3} y={warmthTop} width={BAR_HALF * 2 - 6} height={Math.max(0, roomY - warmthTop)} rx="4" fill={ACCENT} />
-                <rect x={SPEED_X - BAR_HALF + 3} y={speedTop} width={BAR_HALF * 2 - 6} height={BAR_BOTTOM - speedTop} rx="4" fill={ACCENT} />
-                <line x1={WARMTH_X + BAR_HALF + 3} y1={warmthTop} x2={SPEED_X - BAR_HALF - 3} y2={warmthTop} stroke={ACCENT} strokeWidth={weight("gap", 1.5)} strokeDasharray="3 4" opacity={0.45} />
+                <rect x={WARMTH_X - BAR_HALF + 3} y={warmthTop} width={BAR_HALF * 2 - 6} height={Math.max(0, roomY - warmthTop)} rx="4" fill={TEMPERATURE} />
+                <rect x={SPEED_X - BAR_HALF + 3} y={speedTop} width={BAR_HALF * 2 - 6} height={BAR_BOTTOM - speedTop} rx="4" fill={RATE} />
+                <line x1={WARMTH_X + BAR_HALF + 3} y1={warmthTop} x2={SPEED_X - BAR_HALF - 3} y2={warmthTop} stroke={RATE} strokeWidth={weight("gap", 1.5)} strokeDasharray="3 4" opacity={0.55} />
             </g>
 
             {/* The prediction: a faint marker the student places before the run. */}
@@ -271,13 +284,13 @@ function RateVersusAmountDrawing() {
             {revealed && (
                 <>
                     <g opacity={opacity("gap")} style={EASE_150}>
-                        <line x1={SPEED_X - BAR_HALF - 6} y1={speedTop} x2={SPEED_X + BAR_HALF + 6} y2={speedTop} stroke={ACCENT} strokeWidth="3" strokeLinecap="round" />
-                        <text x={SPEED_X + BAR_HALF + 26} y={speedTop + 16} fill={ACCENT} fontSize="12" textAnchor="start">
+                        <line x1={SPEED_X - BAR_HALF - 6} y1={speedTop} x2={SPEED_X + BAR_HALF + 6} y2={speedTop} stroke={RATE} strokeWidth="3" strokeLinecap="round" />
+                        <text x={SPEED_X + BAR_HALF + 26} y={speedTop + 16} fill={RATE} fontSize="12" textAnchor="start">
                             actual
                         </text>
                     </g>
                     <g transform={`translate(${WARMTH_X - BAR_HALF - 18} ${warmthTop}) scale(${tempScale})`}>
-                        <circle r="8" fill={ACCENT} filter="url(#rate-bars-shadow)" />
+                        <circle r="8" fill={TEMPERATURE} filter="url(#rate-bars-shadow)" />
                     </g>
                     <circle
                         cx={WARMTH_X - BAR_HALF - 18}
@@ -307,13 +320,13 @@ function RateVersusAmountDrawing() {
 
             {/* Direct labels under each bar — no legend. */}
             <g fontSize="12" style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
-                <text x={WARMTH_X} y="298" fill={INK} textAnchor="middle" opacity={opacity("warmth")}>
+                <text x={WARMTH_X} y="298" fill={TEMPERATURE} textAnchor="middle" opacity={opacity("warmth")}>
                     {formatTemp(temp)}
                 </text>
                 <text x={WARMTH_X} y="316" fill={INK_STRUCTURE} textAnchor="middle" opacity={opacity("warmth")}>
                     how warm it is
                 </text>
-                <text x={SPEED_X} y="298" fill={ACCENT} textAnchor="middle" opacity={opacity("gap")}>
+                <text x={SPEED_X} y="298" fill={RATE} textAnchor="middle" opacity={opacity("gap")}>
                     {formatSpeed(speed)}
                 </text>
                 <text x={SPEED_X} y="316" fill={INK_STRUCTURE} textAnchor="middle" opacity={opacity("gap")}>
@@ -338,7 +351,7 @@ function RateVersusAmountFigure() {
                 setVar("ratePlaying", false);
                 setVar("rateViewHighlight", "");
             }}
-            caption="The teal part of the left bar is the gap to the room. Place the faint marker at the cooling speed you expect at halfway, then press play to cool the drink there."
+            caption="The teal part of the left bar is the gap to the room; the violet bar beside it is the cooling speed that gap produces. Place the faint marker at the speed you expect at halfway, then press play."
         >
             <RateVersusAmountDrawing />
             <InteractionHintSequence
@@ -360,7 +373,7 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-versus-amount-heading" maxWidth="xl">
         <Block id="rate-versus-amount-heading" padding="md">
             <EditableH2 id="h2-rate-versus-amount-heading" blockId="rate-versus-amount-heading">
-                Rate Is Not Amount
+                Instantaneous Rate versus Quantity
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -368,10 +381,29 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-versus-amount-setup" maxWidth="xl">
         <Block id="rate-versus-amount-setup" padding="sm">
             <EditableParagraph id="para-rate-versus-amount-setup" blockId="rate-versus-amount-setup">
-                Here is where it is easy to slip. The temperature of the drink and the speed it is
-                cooling are two different numbers, and they do not stay in step. Before the clock
-                runs, drag the faint marker to the cooling speed you would expect once the drink is
-                halfway down to room temperature.
+                Here is where it is easy to slip. The{" "}
+                <InlineLinkedHighlight
+                    id="link-rate-versus-amount-warmth"
+                    varName="rateViewHighlight"
+                    highlightId="warmth"
+                    {...hue("temperature")}
+                >
+                    temperature of the drink
+                </InlineLinkedHighlight>{" "}
+                and the{" "}
+                <InlineTooltip
+                    id="tooltip-rate-versus-amount-speed"
+                    tooltip="How many degrees the drink would lose in the next minute if it kept this speed up. A rate, measured in degrees per minute."
+                >
+                    speed it is cooling
+                </InlineTooltip>{" "}
+                are two different numbers, and they do not stay in step. Before the clock runs, drag
+                the faint marker to the speed you would expect once the drink is halfway down to
+                room temperature, or claim it is{" "}
+                <InlineTrigger id="trigger-rate-versus-amount-unchanged" varName="predictedSpeed" value={3.5} icon="zap">
+                    still cooling as fast as ever
+                </InlineTrigger>
+                .
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -385,17 +417,36 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-versus-amount-reflection" maxWidth="xl">
         <Block id="rate-versus-amount-reflection" padding="sm">
             <EditableParagraph id="para-rate-versus-amount-reflection" blockId="rate-versus-amount-reflection">
-                Halfway down, the drink is still a warm 55 degrees, yet it cools at exactly half the
-                speed it started with. What the speed follows is the{" "}
+                At{" "}
+                <InlineScrubbleNumber
+                    varName="mugTemp"
+                    {...numberPropsFromDefinition(getVariableInfo("mugTemp"))}
+                    formatValue={formatTemp}
+                />{" "}
+                the drink is still comfortably warm, yet the instantaneous rate the{" "}
+                <InlineSpotColor varName="symbolRate" {...spotColorPropsFromDefinition(getVariableInfo("symbolRate"))}>
+                    violet bar
+                </InlineSpotColor>{" "}
+                reports follows the{" "}
                 <InlineLinkedHighlight
+                    id="link-rate-versus-amount-gap"
                     varName="rateViewHighlight"
                     highlightId="gap"
-                    {...linkedHighlightPropsFromDefinition(getVariableInfo("rateViewHighlight"))}
+                    {...hue("temperature")}
                 >
                     gap to the room
                 </InlineLinkedHighlight>
-                , never the temperature by itself. So what function could keep both of those true at
-                once?
+                , never the temperature by itself:{" "}
+                <InlineFormula
+                    latex="\clr{rate}{\text{speed}} = \clr{steepness}{k}\,(\clr{temperature}{T} - \clr{room}{20})"
+                    colorMap={{
+                        rate: QUANTITY.rate,
+                        steepness: QUANTITY.steepness,
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                    }}
+                />
+                . So what function could keep both of those true at once?
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -403,8 +454,16 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-versus-amount-question-gap" maxWidth="xl">
         <Block id="rate-versus-amount-question-gap" padding="md">
             <EditableParagraph id="para-rate-versus-amount-question-gap" blockId="rate-versus-amount-question-gap">
-                A forgotten cup of tea has sunk to 40 degrees in that same 20-degree room, with
-                k = 0.05. Its cooling speed, in degrees per minute, is now{" "}
+                A forgotten cup of tea has sunk to{" "}
+                <InlineSpotColor varName="symbolTemperature" {...spotColorPropsFromDefinition(getVariableInfo("symbolTemperature"))}>
+                    40 degrees
+                </InlineSpotColor>{" "}
+                in that same{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    20-degree room
+                </InlineSpotColor>
+                , with <InlineFormula latex="\clr{steepness}{k} = \clr{steepness}{0.05}" colorMap={{ steepness: QUANTITY.steepness }} />. Its cooling speed,
+                in degrees per minute, is now{" "}
                 <InlineFeedback
                     varName="answerGapSpeed"
                     correctValue={["1", "1.0", "-1", "-1.0"]}
@@ -417,6 +476,7 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
                         varName="answerGapSpeed"
                         correctAnswer={["1", "1.0", "-1", "-1.0"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerGapSpeed"))}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -441,7 +501,7 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
                         steps: [
                             {
                                 gesture: "drag-vertical",
-                                label: "Drag the teal handle on the left bar up to 80 degrees and read the cooling speed",
+                                label: "Drag the teal handle on the left bar up to 80 degrees and read the violet speed",
                                 position: { x: "41%", y: "37%" },
                                 completionVar: "mugTemp",
                                 completionValue: 80,
@@ -464,6 +524,7 @@ export const rateIsNotAmountBlocks: ReactElement[] = [
                         varName="answerSpeedRatio"
                         correctAnswer={["2", "2.0", "twice", "two"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerSpeedRatio"))}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>

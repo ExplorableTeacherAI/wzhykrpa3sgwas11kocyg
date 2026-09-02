@@ -1,13 +1,14 @@
 import { type ReactElement } from "react";
 import { Block } from "@/components/templates";
 import { StackLayout } from "@/components/layouts";
-import { EditableH2, EditableParagraph } from "@/components/atoms";
+import { EditableH2, EditableParagraph, InlineFormula } from "@/components/atoms";
+import { QUANTITY } from "../lessonColors";
 
 export const wrappingUpBlocks: ReactElement[] = [
     <StackLayout key="layout-wrapping-up-heading" maxWidth="xl">
         <Block id="wrapping-up-heading" padding="md">
             <EditableH2 id="h2-wrapping-up-heading" blockId="wrapping-up-heading">
-                Wrapping Up
+                Synthesis: From Rate Law to Particular Solution
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -15,8 +16,19 @@ export const wrappingUpBlocks: ReactElement[] = [
     <StackLayout key="layout-wrapping-up-closing" maxWidth="xl">
         <Block id="wrapping-up-closing" padding="sm">
             <EditableParagraph id="para-wrapping-up-closing" blockId="wrapping-up-closing">
-                So the mug never needed a formula for its temperature. It needed a rule for its speed,
-                and the temperature followed from that. This is what a differential equation is: a
+                So the mug never needed a formula for its temperature. It needed a rule for its
+                speed,{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}} = -\clr{steepness}{k}\,(\clr{temperature}{T} - \clr{room}{20})"
+                    colorMap={{
+                        rate: QUANTITY.rate,
+                        time: QUANTITY.time,
+                        steepness: QUANTITY.steepness,
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                    }}
+                />
+                , and the temperature followed from that. This is what a differential equation is: a
                 statement about how fast something changes, whose answer is always a whole function
                 rather than a single number.
             </EditableParagraph>

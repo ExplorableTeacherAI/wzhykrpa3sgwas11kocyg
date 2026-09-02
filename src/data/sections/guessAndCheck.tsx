@@ -7,8 +7,12 @@ import {
     InlineClozeChoice,
     InlineClozeInput,
     InlineFeedback,
+    InlineFormula,
     InlineLinkedHighlight,
     InlineScrubbleNumber,
+    InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
 } from "@/components/atoms";
 import { Figure, FigureSlider, FormulaBlock } from "@/components/molecules";
@@ -18,9 +22,10 @@ import {
     choicePropsFromDefinition,
     clozePropsFromDefinition,
     getVariableInfo,
-    linkedHighlightPropsFromDefinition,
     numberPropsFromDefinition,
+    spotColorPropsFromDefinition,
 } from "../variables";
+import { QUANTITY, hue, tint } from "../lessonColors";
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -52,10 +57,16 @@ const ARROW_TEMPS = [28, 38, 48, 58, 68, 78];
 const ARROW_HALF = 11;
 const CROSS_BAND = 15;
 
-const INK = "#334155";
 const INK_STRUCTURE = "#64748B";
 const INK_QUIET = "#CBD5E1";
-const ACCENT = "#62D0AD";
+/** Teal: the guessed temperature curve. */
+const TEMPERATURE = QUANTITY.temperature;
+/** Violet: the rate the rule demands, drawn as the arrow field. */
+const RATE = QUANTITY.rate;
+/** Sky: the room the curve settles onto. */
+const ROOM = QUANTITY.room;
+/** Rose: the steepness k. */
+const STEEPNESS = QUANTITY.steepness;
 
 const formatTemp = (v: number) => `${v.toFixed(1)}°C`;
 const formatSteepness = (v: number) => v.toFixed(3);
@@ -179,13 +190,13 @@ function SlopeFieldDrawing() {
 
             {/* Readouts: the guess, and how it is doing against the arrows. */}
             <g fontSize="12" style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
-                <text x="24" y="34" fill={INK} opacity={opacity("curve")}>
+                <text x="24" y="34" fill={TEMPERATURE} opacity={opacity("curve")}>
                     {`start ${formatTemp(ROOM_TEMP + gap)}`}
                 </text>
-                <text x={VIEW_WIDTH / 2} y="34" fill={INK_STRUCTURE} textAnchor="middle" opacity={opacity("field")}>
+                <text x={VIEW_WIDTH / 2} y="34" fill={RATE} textAnchor="middle" opacity={opacity("field")}>
                     {`arrows matched: ${matchedCount} of ${crossedCount}`}
                 </text>
-                <text x={VIEW_WIDTH - 24} y="34" fill={ACCENT} textAnchor="end" opacity={opacity("curve")}>
+                <text x={VIEW_WIDTH - 24} y="34" fill={STEEPNESS} textAnchor="end" opacity={opacity("curve")}>
                     {`k = ${formatSteepness(k)}`}
                 </text>
             </g>
@@ -194,12 +205,12 @@ function SlopeFieldDrawing() {
             <g opacity={opacity("__structure")} style={EASE_150}>
                 <line x1={PLOT_LEFT} y1={PLOT_BOTTOM} x2={PLOT_RIGHT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
                 <line x1={PLOT_LEFT} y1={PLOT_TOP} x2={PLOT_LEFT} y2={PLOT_BOTTOM} stroke={INK_QUIET} strokeWidth="1.5" />
-                <g fill={INK} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    <text x={PLOT_LEFT - 10} y={yForTemp(90) + 4}>90°</text>
-                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4}>55°</text>
-                    <text x={PLOT_LEFT - 10} y={PLOT_BOTTOM + 4}>20°</text>
+                <g fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(90) + 4} fill={TEMPERATURE}>90°</text>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4} fill={TEMPERATURE}>55°</text>
+                    <text x={PLOT_LEFT - 10} y={PLOT_BOTTOM + 4} fill={ROOM}>20°</text>
                 </g>
-                <g fill={INK} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <g fill={QUANTITY.time} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
                     <text x={PLOT_LEFT} y={PLOT_BOTTOM + 28} textAnchor="start">0</text>
                     <text x={xForTime(20)} y={PLOT_BOTTOM + 28} textAnchor="middle">20 min</text>
                     <text x={PLOT_RIGHT} y={PLOT_BOTTOM + 28} textAnchor="end">40</text>
@@ -214,7 +225,7 @@ function SlopeFieldDrawing() {
                             <path
                                 d={arrowPath(arrow.x, arrow.y, arrow.dx, arrow.dy)}
                                 fill="none"
-                                stroke={ACCENT}
+                                stroke={RATE}
                                 strokeWidth={weight("field", 2.5) + 6}
                                 strokeLinecap="round"
                                 opacity={0.28}
@@ -223,7 +234,7 @@ function SlopeFieldDrawing() {
                         <path
                             d={arrowPath(arrow.x, arrow.y, arrow.dx, arrow.dy)}
                             fill="none"
-                            stroke={arrow.matched ? ACCENT : arrow.crossed ? INK_STRUCTURE : INK_QUIET}
+                            stroke={arrow.matched ? RATE : arrow.crossed ? INK_STRUCTURE : INK_QUIET}
                             strokeWidth={arrow.matched ? weight("field", 2.5) : arrow.crossed ? weight("field", 2) : 1.5}
                             strokeLinecap="round"
                             style={EASE_150}
@@ -235,14 +246,14 @@ function SlopeFieldDrawing() {
             {/* CURVE group — the guess itself, the one accent object you move. */}
             <g {...hoverProps("curve")} opacity={opacity("curve")} style={EASE_150}>
                 {isActive("curve") && (
-                    <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3) + 6} strokeLinecap="round" opacity={0.28} />
+                    <path d={curvePath} fill="none" stroke={TEMPERATURE} strokeWidth={weight("curve", 3) + 6} strokeLinecap="round" opacity={0.28} />
                 )}
-                <path d={curvePath} fill="none" stroke={ACCENT} strokeWidth={weight("curve", 3)} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={curvePath} fill="none" stroke={TEMPERATURE} strokeWidth={weight("curve", 3)} strokeLinecap="round" strokeLinejoin="round" />
             </g>
 
             {/* Two handles: the start height, and the steepness of the tail. */}
             <g transform={`translate(${PLOT_LEFT} ${startY}) scale(${startScale})`}>
-                <circle r="8" fill={ACCENT} filter="url(#guess-curve-shadow)" />
+                <circle r="8" fill={TEMPERATURE} filter="url(#guess-curve-shadow)" />
             </g>
             <circle
                 cx={PLOT_LEFT}
@@ -269,7 +280,7 @@ function SlopeFieldDrawing() {
             />
 
             <g transform={`translate(${tailX} ${tailY}) scale(${tailScale})`}>
-                <circle r="8" fill={ACCENT} filter="url(#guess-curve-shadow)" />
+                <circle r="8" fill={STEEPNESS} filter="url(#guess-curve-shadow)" />
             </g>
             <circle
                 cx={tailX}
@@ -308,7 +319,7 @@ function SlopeFieldFigure() {
                 setVar("guessK", 0.09);
                 setVar("guessViewHighlight", "");
             }}
-            caption="Every arrow points the way the cooling rule demands at that spot. Drag the handle at 20 minutes to bend the tail, and the one on the left to slide the whole curve up or down."
+            caption="Every violet arrow points the way the cooling rule demands at that spot. Drag the rose handle at 20 minutes to bend the tail, and the teal one on the left to slide the whole curve up or down."
         >
             <SlopeFieldDrawing />
             <div className="px-6 pb-5">
@@ -324,7 +335,7 @@ function SlopeFieldFigure() {
                 steps={[
                     {
                         gesture: "drag-vertical",
-                        label: "Drag this handle until the arrows turn teal",
+                        label: "Drag the rose handle until the arrows turn violet",
                         position: { x: "51%", y: "78%" },
                         dragPath: { type: "line", startOffset: { x: 0, y: -26 }, endOffset: { x: 0, y: 26 } },
                     },
@@ -338,7 +349,7 @@ export const guessAndCheckBlocks: ReactElement[] = [
     <StackLayout key="layout-guess-and-check-heading" maxWidth="xl">
         <Block id="guess-and-check-heading" padding="md">
             <EditableH2 id="h2-guess-and-check-heading" blockId="guess-and-check-heading">
-                Guessing a Solution and Checking It
+                Verifying a Solution by Differentiation: the Slope Field
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -346,22 +357,53 @@ export const guessAndCheckBlocks: ReactElement[] = [
     <StackLayout key="layout-guess-and-check-setup" maxWidth="xl">
         <Block id="guess-and-check-setup" padding="sm">
             <EditableParagraph id="para-guess-and-check-setup" blockId="guess-and-check-setup">
-                So what kind of answer are we looking for? Not a number, but a whole function giving
-                the temperature at every moment. There is a way to test a guess without solving
-                anything: differentiate it and see whether it obeys the rule.
+                So what kind of answer are we looking for? Not a number, but a whole{" "}
+                <InlineTooltip
+                    id="tooltip-guess-and-check-solution"
+                    tooltip="A solution of a differential equation is a function, not a number. Substituting it and differentiating must reproduce the rule at every moment."
+                >
+                    solution
+                </InlineTooltip>
+                : a function giving the temperature at every moment. There is a way to test a guess
+                without solving anything: differentiate it and see whether it obeys the rule.
             </EditableParagraph>
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-guess-and-check-guess" maxWidth="xl">
         <Block id="guess-and-check-guess" padding="lg">
-            <FormulaBlock latex="T = 20 + 70\,e^{-0.05t}" />
+            <FormulaBlock
+                latex="\clr{temperature}{T} = \clr{room}{20} + \clr{temperature}{70}\,e^{-\clr{steepness}{0.05}\,\clr{time}{t}}"
+                colorMap={{
+                    temperature: QUANTITY.temperature,
+                    room: QUANTITY.room,
+                    steepness: QUANTITY.steepness,
+                    time: QUANTITY.time,
+                }}
+            />
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-guess-and-check-derivative" maxWidth="xl">
         <Block id="guess-and-check-derivative" padding="lg">
-            <FormulaBlock latex="\frac{dT}{dt} = -0.05 \times 70\,e^{-0.05t} = -0.05\,(T - 20)" />
+            <FormulaBlock
+                latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}} = \choice{derivativeMultiplier}\times \clr{temperature}{70}\,e^{-\clr{steepness}{0.05}\,\clr{time}{t}}"
+                colorMap={{
+                    rate: QUANTITY.rate,
+                    time: QUANTITY.time,
+                    temperature: QUANTITY.temperature,
+                    steepness: QUANTITY.steepness,
+                }}
+                clozeChoices={{
+                    derivativeMultiplier: {
+                        correctAnswer: "-0.05",
+                        options: ["-0.05", "0.05", "-70", "70"],
+                        placeholder: "???",
+                        color: QUANTITY.steepness,
+                        bgColor: tint(QUANTITY.steepness, 0.18),
+                    },
+                }}
+            />
         </Block>
     </StackLayout>,
 
@@ -370,14 +412,31 @@ export const guessAndCheckBlocks: ReactElement[] = [
             <EditableParagraph id="para-guess-and-check-invite" blockId="guess-and-check-invite">
                 Each little{" "}
                 <InlineLinkedHighlight
+                    id="link-guess-and-check-arrows"
                     varName="guessViewHighlight"
                     highlightId="field"
-                    {...linkedHighlightPropsFromDefinition(getVariableInfo("guessViewHighlight"))}
+                    {...hue("rate")}
                 >
-                    arrow
+                    violet arrow
                 </InlineLinkedHighlight>{" "}
-                below points the way the rule demands at that spot. Pull the curve's tail until the
-                arrows it crosses turn teal, then drag its starting point up and down.
+                in the{" "}
+                <InlineTooltip
+                    id="tooltip-guess-and-check-slope-field"
+                    tooltip="A slope field draws the derivative the equation demands at every point of the plane. Any genuine solution runs tangent to the arrows all the way along."
+                >
+                    slope field
+                </InlineTooltip>{" "}
+                below points the way the rule demands at that spot. Pull the rose tail handle until
+                the arrows the{" "}
+                <InlineLinkedHighlight
+                    id="link-guess-and-check-curve"
+                    varName="guessViewHighlight"
+                    highlightId="curve"
+                    {...hue("temperature")}
+                >
+                    teal curve
+                </InlineLinkedHighlight>{" "}
+                crosses light up, then drag its starting point up and down.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -391,15 +450,23 @@ export const guessAndCheckBlocks: ReactElement[] = [
     <StackLayout key="layout-guess-and-check-reflection" maxWidth="xl">
         <Block id="guess-and-check-reflection" padding="sm">
             <EditableParagraph id="para-guess-and-check-reflection" blockId="guess-and-check-reflection">
-                Differentiating the guess gives exactly minus 0.05 times the gap, which is the rule
-                itself. Slide the starting height and every arrow stays matched; the steepness{" "}
+                Slide the{" "}
+                <InlineScrubbleNumber
+                    varName="guessStartGap"
+                    {...numberPropsFromDefinition(getVariableInfo("guessStartGap"))}
+                    formatValue={(v) => `${v.toFixed(1)}°`}
+                />{" "}
+                starting height and every arrow stays matched, but the steepness{" "}
                 <InlineScrubbleNumber
                     varName="guessK"
                     {...numberPropsFromDefinition(getVariableInfo("guessK"))}
                     formatValue={formatSteepness}
                 />{" "}
-                is the one number that has to be right. That is why a single rule owns a whole family
-                of curves.
+                is the one number that has to be right, and only{" "}
+                <InlineTrigger id="trigger-guess-and-check-exact" varName="guessK" value={0.05} icon="zap">
+                    the rule's own value
+                </InlineTrigger>{" "}
+                will do. That is why a single rule owns a whole family of curves.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -407,8 +474,12 @@ export const guessAndCheckBlocks: ReactElement[] = [
     <StackLayout key="layout-guess-and-check-question-growth" maxWidth="xl">
         <Block id="guess-and-check-question-growth" padding="md">
             <EditableParagraph id="para-guess-and-check-question-growth" blockId="guess-and-check-question-growth">
-                A colony of bacteria obeys a growth rule instead: dP/dt = 0.03P. Of these three, the
-                function that survives the differentiate-and-check test is{" "}
+                A colony of bacteria obeys a growth rule instead:{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dP}}{\clr{time}{dt}} = \clr{steepness}{0.03}P"
+                    colorMap={{ rate: QUANTITY.rate, time: QUANTITY.time, steepness: QUANTITY.steepness }}
+                />
+                . Of these three, the function that survives the differentiate-and-check test is{" "}
                 <InlineFeedback
                     varName="answerGrowthSolution"
                     correctValue="200e^(0.03t)"
@@ -422,6 +493,7 @@ export const guessAndCheckBlocks: ReactElement[] = [
                         correctAnswer="200e^(0.03t)"
                         options={["200e^(0.03t)", "200e^(3t)", "0.03t + 200"]}
                         {...choicePropsFromDefinition(getVariableInfo("answerGrowthSolution"))}
+                        bgColor={tint(QUANTITY.steepness, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -431,8 +503,32 @@ export const guessAndCheckBlocks: ReactElement[] = [
     <StackLayout key="layout-guess-and-check-question-exponent" maxWidth="xl">
         <Block id="guess-and-check-question-exponent" padding="md">
             <EditableParagraph id="para-guess-and-check-question-exponent" blockId="guess-and-check-question-exponent">
-                Differentiate T = 20 + 40e^(−0.02t) and the answer takes the form dT/dt = c × (T − 20).
-                The value of c is{" "}
+                Differentiate{" "}
+                <InlineFormula
+                    latex="\clr{temperature}{T} = \clr{room}{20} + \clr{temperature}{40}e^{-\clr{steepness}{0.02}\,\clr{time}{t}}"
+                    colorMap={{
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                        steepness: QUANTITY.steepness,
+                        time: QUANTITY.time,
+                    }}
+                />{" "}
+                and the answer takes the form{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}} = \clr{steepness}{c}\,(\clr{temperature}{T} - \clr{room}{20})"
+                    colorMap={{
+                        rate: QUANTITY.rate,
+                        time: QUANTITY.time,
+                        steepness: QUANTITY.steepness,
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                    }}
+                />
+                . The value of{" "}
+                <InlineSpotColor varName="symbolSteepness" {...spotColorPropsFromDefinition(getVariableInfo("symbolSteepness"))}>
+                    c
+                </InlineSpotColor>{" "}
+                is{" "}
                 <InlineFeedback
                     varName="answerExponentValue"
                     correctValue={["-0.02", "-0.020", "-.02"]}
@@ -446,7 +542,7 @@ export const guessAndCheckBlocks: ReactElement[] = [
                         steps: [
                             {
                                 gesture: "drag-vertical",
-                                label: "Drag the handle at 20 minutes until the arrows turn teal — watch the k readout",
+                                label: "Drag the rose handle at 20 minutes until the arrows turn violet — watch the k readout",
                                 position: { x: "51%", y: "78%" },
                                 completionVar: "guessK",
                                 completionValue: 0.05,
@@ -454,7 +550,7 @@ export const guessAndCheckBlocks: ReactElement[] = [
                             },
                             {
                                 gesture: "drag-vertical",
-                                label: "Now drag the left handle to the top — the arrows stay matched",
+                                label: "Now drag the teal handle to the top — the arrows stay matched",
                                 position: { x: "12%", y: "47%" },
                                 completionVar: "guessStartGap",
                                 completionValue: 68,
@@ -469,6 +565,7 @@ export const guessAndCheckBlocks: ReactElement[] = [
                         varName="answerExponentValue"
                         correctAnswer={["-0.02", "-0.020", "-.02"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerExponentValue"))}
+                        bgColor={tint(QUANTITY.steepness, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>

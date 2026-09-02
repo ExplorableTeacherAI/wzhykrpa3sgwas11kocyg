@@ -6,7 +6,11 @@ import {
     EditableParagraph,
     InlineClozeInput,
     InlineFeedback,
+    InlineFormula,
     InlineLinkedHighlight,
+    InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
 } from "@/components/atoms";
 import { Figure, FormulaBlock } from "@/components/molecules";
@@ -15,8 +19,9 @@ import { type Vec2 } from "@/lib/motion";
 import {
     clozePropsFromDefinition,
     getVariableInfo,
-    linkedHighlightPropsFromDefinition,
+    spotColorPropsFromDefinition,
 } from "../variables";
+import { QUANTITY, hue, tint } from "../lessonColors";
 
 // ── The cards and where they belong ──────────────────────────────────────────
 
@@ -63,7 +68,11 @@ const MAX_IN_TRAY = 4;
 const INK = "#334155";
 const INK_STRUCTURE = "#64748B";
 const INK_QUIET = "#CBD5E1";
-const ACCENT = "#62D0AD";
+/** Violet: an equation that carries a derivative. */
+const DERIVATIVE = QUANTITY.derivative;
+/** Coral: the trays, which sort by order. */
+const ORDER = QUANTITY.order;
+const CORRECT = "#22c55e";
 const AMBER = "#F7B23B";
 const PAPER = "#FFFFFF";
 
@@ -187,7 +196,7 @@ function EquationSortingDrawing() {
                         width={CARD_WIDTH + 8}
                         height={CARD_HEIGHT + 8}
                         rx="10"
-                        fill={ACCENT}
+                        fill={DERIVATIVE}
                         opacity={0.28}
                     />
                 )}
@@ -197,8 +206,8 @@ function EquationSortingDrawing() {
                     width={CARD_WIDTH}
                     height={CARD_HEIGHT}
                     rx="6"
-                    fill={right ? ACCENT : PAPER}
-                    stroke={right ? ACCENT : wrong ? AMBER : INK_STRUCTURE}
+                    fill={right ? CORRECT : PAPER}
+                    stroke={right ? CORRECT : wrong ? AMBER : card.tray >= 1 ? DERIVATIVE : INK_STRUCTURE}
                     strokeWidth={weight(groupId, right || wrong ? 2 : 1.5)}
                     filter="url(#sorting-card-shadow)"
                     style={{ cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
@@ -242,7 +251,7 @@ function EquationSortingDrawing() {
             <text
                 x={VIEW_WIDTH / 2}
                 y="190"
-                fill={allHome ? ACCENT : INK_STRUCTURE}
+                fill={allHome ? CORRECT : INK_STRUCTURE}
                 fontSize="12"
                 textAnchor="middle"
                 opacity={opacity("__structure")}
@@ -262,7 +271,7 @@ function EquationSortingDrawing() {
                                 width={TRAY_HALF * 2 + 8}
                                 height={TRAY_BOTTOM - TRAY_TOP + 8}
                                 rx="14"
-                                fill={ACCENT}
+                                fill={ORDER}
                                 opacity={0.28}
                             />
                         )}
@@ -273,11 +282,11 @@ function EquationSortingDrawing() {
                             height={TRAY_BOTTOM - TRAY_TOP}
                             rx="10"
                             fill="#F8FAFC"
-                            stroke={INK_QUIET}
+                            stroke={tray.index >= 1 ? ORDER : INK_QUIET}
                             strokeWidth={weight("trays", 1.5)}
                             strokeDasharray="6 5"
                         />
-                        <text x={tray.cx} y="218" fill={INK} fontSize="12" textAnchor="middle">
+                        <text x={tray.cx} y="218" fill={tray.index >= 1 ? ORDER : INK} fontSize="12" textAnchor="middle">
                             {tray.label}
                         </text>
                     </g>
@@ -299,7 +308,7 @@ function EquationSortingFigure() {
                 EQUATION_CARDS.forEach((card) => setVar(card.varName, -1));
                 setVar("definitionHighlight", "");
             }}
-            caption="Six equations, three trays. A card turns teal when it lands where it belongs, and amber when it does not, so drag it back out and try another tray."
+            caption="Six equations, three trays. Violet outlines mark the ones carrying a derivative, coral marks the trays that sort by order. A card turns green when it lands where it belongs and amber when it does not."
         >
             <EquationSortingDrawing />
             <InteractionHintSequence
@@ -321,7 +330,7 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
     <StackLayout key="layout-definition-heading" maxWidth="xl">
         <Block id="definition-heading" padding="md">
             <EditableH2 id="h2-definition-heading" blockId="definition-heading">
-                What Makes It a Differential Equation
+                Defining a Differential Equation: Derivatives and Order
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -331,9 +340,10 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
             <EditableParagraph id="para-definition-setup" blockId="definition-setup">
                 Strip away the story and these are easy to spot: any equation with{" "}
                 <InlineLinkedHighlight
+                    id="link-definition-derivatives"
                     varName="definitionHighlight"
                     highlightId="derivatives"
-                    {...linkedHighlightPropsFromDefinition(getVariableInfo("definitionHighlight"))}
+                    {...hue("derivative")}
                 >
                     a derivative in it
                 </InlineLinkedHighlight>
@@ -345,15 +355,25 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
 
     <StackLayout key="layout-definition-examples" maxWidth="xl">
         <Block id="definition-examples" padding="lg">
-            <FormulaBlock latex="\frac{dy}{dx} = 3y \qquad \frac{d^2y}{dx^2} + y = 0" />
+            <FormulaBlock
+                latex="\frac{\clr{derivative}{dy}}{\clr{derivative}{dx}} = 3y \qquad \frac{\clr{derivative}{d^2y}}{\clr{derivative}{dx^2}} + y = 0"
+                colorMap={{ derivative: QUANTITY.derivative }}
+            />
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-definition-invite" maxWidth="xl">
         <Block id="definition-invite" padding="sm">
             <EditableParagraph id="para-definition-invite" blockId="definition-invite">
-                Six equations sit in a pile below. Drag each one into the tray you think it belongs
-                in, and the tray will tell you straight away whether it is home.
+                Six equations sit in a pile below, the{" "}
+                <InlineSpotColor varName="symbolRate" {...spotColorPropsFromDefinition(getVariableInfo("symbolRate"))}>
+                    violet
+                </InlineSpotColor>{" "}
+                ones carrying a derivative. Drag each into the{" "}
+                <InlineSpotColor varName="symbolOrder" {...spotColorPropsFromDefinition(getVariableInfo("symbolOrder"))}>
+                    coral tray
+                </InlineSpotColor>{" "}
+                you think it belongs in, and it will tell you straight away whether it is home.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -367,9 +387,19 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
     <StackLayout key="layout-definition-reflection" maxWidth="xl">
         <Block id="definition-reflection" padding="sm">
             <EditableParagraph id="para-definition-reflection" blockId="definition-reflection">
-                That highest derivative is called the order. Our cooling rule stops at a first
-                derivative, so it is first order, and everything here stays there. Quantities
-                depending on several things at once need partial derivatives instead.
+                That highest derivative is called the{" "}
+                <InlineTooltip
+                    id="tooltip-definition-order"
+                    tooltip="The order of a differential equation is how many times you must differentiate to reach its highest derivative. Never how high a power is raised."
+                >
+                    order
+                </InlineTooltip>
+                , so{" "}
+                <InlineTrigger id="trigger-definition-falling" varName="eqTrayFallingObject" value={2} icon="zap">
+                    a falling object
+                </InlineTrigger>
+                , with <InlineFormula latex="\frac{\clr{derivative}{d^2s}}{\clr{derivative}{dt^2}} = -g" colorMap={{ derivative: QUANTITY.derivative }} />, is second
+                order. Our cooling rule stops at a first derivative, and everything here stays there.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -377,7 +407,12 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
     <StackLayout key="layout-definition-question-third" maxWidth="xl">
         <Block id="definition-question-third" padding="md">
             <EditableParagraph id="para-definition-question-third" blockId="definition-question-third">
-                A new equation arrives: d³y/dx³ + 2y = x. Its order is{" "}
+                A new equation arrives:{" "}
+                <InlineFormula
+                    latex="\frac{\clr{derivative}{d^3y}}{\clr{derivative}{dx^3}} + 2y = x"
+                    colorMap={{ derivative: QUANTITY.derivative }}
+                />
+                . Its order is{" "}
                 <InlineFeedback
                     varName="answerThirdOrder"
                     correctValue={["3", "three", "third"]}
@@ -390,6 +425,7 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
                         varName="answerThirdOrder"
                         correctAnswer={["3", "three", "third"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerThirdOrder"))}
+                        bgColor={tint(QUANTITY.order, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -399,7 +435,12 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
     <StackLayout key="layout-definition-question-cubed" maxWidth="xl">
         <Block id="definition-question-cubed" padding="md">
             <EditableParagraph id="para-definition-question-cubed" blockId="definition-question-cubed">
-                Now a trickier one: (dy/dx)³ = y + 1. Its order is{" "}
+                Now a trickier one:{" "}
+                <InlineFormula
+                    latex="\left(\frac{\clr{derivative}{dy}}{\clr{derivative}{dx}}\right)^3 = y + 1"
+                    colorMap={{ derivative: QUANTITY.derivative }}
+                />
+                . Its order is{" "}
                 <InlineFeedback
                     varName="answerCubedDerivative"
                     correctValue={["1", "one", "first"]}
@@ -435,6 +476,7 @@ export const whatIsADifferentialEquationBlocks: ReactElement[] = [
                         varName="answerCubedDerivative"
                         correctAnswer={["1", "one", "first"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerCubedDerivative"))}
+                        bgColor={tint(QUANTITY.order, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>

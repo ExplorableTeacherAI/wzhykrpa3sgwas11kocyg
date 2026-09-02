@@ -10,6 +10,9 @@ import {
     InlineFormula,
     InlineLinkedHighlight,
     InlineScrubbleNumber,
+    InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
 } from "@/components/atoms";
 import { Figure, FigureSlider, FormulaBlock } from "@/components/molecules";
@@ -19,22 +22,24 @@ import {
     choicePropsFromDefinition,
     clozePropsFromDefinition,
     getVariableInfo,
-    linkedHighlightPropsFromDefinition,
     numberPropsFromDefinition,
+    scrubVarsFromDefinitions,
+    spotColorPropsFromDefinition,
 } from "../variables";
+import { QUANTITY, hue, tint } from "../lessonColors";
 
 // ── Shared model ─────────────────────────────────────────────────────────────
 // One source of truth: both views read `coolingTime` and derive everything else.
 
 const ROOM_TEMP = 20;
 const START_TEMP = 90;
-const COOLING_K = 0.05;
+const DEFAULT_K = 0.05;
 const MAX_TIME = 40;
 const DEFAULT_TIME = 8;
 
-const tempAtTime = (t: number) => ROOM_TEMP + (START_TEMP - ROOM_TEMP) * Math.exp(-COOLING_K * t);
-const timeAtTemp = (T: number) => -Math.log((T - ROOM_TEMP) / (START_TEMP - ROOM_TEMP)) / COOLING_K;
-const MIN_TEMP = tempAtTime(MAX_TIME);
+const tempAtTime = (t: number, k: number) => ROOM_TEMP + (START_TEMP - ROOM_TEMP) * Math.exp(-k * t);
+const timeAtTemp = (T: number, k: number) => -Math.log((T - ROOM_TEMP) / (START_TEMP - ROOM_TEMP)) / k;
+const minTemp = (k: number) => tempAtTime(MAX_TIME, k);
 
 // ── Shared view geometry — THE VISIBLE TIE ───────────────────────────────────
 // Same viewBox, same room line, same pixels per degree in BOTH drawings, so the
@@ -56,11 +61,19 @@ const xForTime = (t: number) => remap(t, 0, MAX_TIME, PLOT_LEFT, PLOT_RIGHT);
 const INK = "#334155";
 const INK_STRUCTURE = "#64748B";
 const INK_QUIET = "#CBD5E1";
-const ACCENT = "#62D0AD";
+/** Teal: how warm the drink is, and the gap it still has to lose. */
+const TEMPERATURE = QUANTITY.temperature;
+/** Indigo: the clock. */
+const TIME = QUANTITY.time;
+/** Sky: the room the drink is heading towards. */
+const ROOM = QUANTITY.room;
+/** Rose: the steepness k. */
+const STEEPNESS = QUANTITY.steepness;
 
 // One formatter per quantity, used by the drawings, the slider and the prose.
 const formatMinutes = (v: number) => `${v.toFixed(1)} min`;
 const formatTemp = (v: number) => `${v.toFixed(1)}°C`;
+const formatSteepness = (v: number) => v.toFixed(3);
 
 const EASE_150 = { transition: "opacity 150ms ease, stroke-width 150ms ease" } as const;
 
@@ -90,15 +103,18 @@ const svgPointFromEvent = (event: React.PointerEvent, svg: SVGSVGElement | null)
     };
 };
 
-function SharedReadouts({ time }: { time: number }) {
+function SharedReadouts({ time, k }: { time: number; k: number }) {
     const { opacity } = useHighlightState();
     return (
-        <g fontSize="18" style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
-            <text x="24" y="40" fill={INK} opacity={opacity("time")}>
+        <g style={{ fontVariantNumeric: "tabular-nums", ...EASE_150 }}>
+            <text x="24" y="40" fill={TIME} fontSize="18" opacity={opacity("time")}>
                 {`t = ${formatMinutes(time)}`}
             </text>
-            <text x={VIEW_WIDTH - 24} y="40" fill={ACCENT} textAnchor="end" opacity={opacity("temperature")}>
-                {`T = ${formatTemp(tempAtTime(time))}`}
+            <text x={VIEW_WIDTH - 24} y="40" fill={TEMPERATURE} fontSize="18" textAnchor="end" opacity={opacity("temperature")}>
+                {`T = ${formatTemp(tempAtTime(time, k))}`}
+            </text>
+            <text x={VIEW_WIDTH - 24} y="58" fill={STEEPNESS} fontSize="12" textAnchor="end" opacity={opacity("__structure")}>
+                {`k = ${formatSteepness(k)}`}
             </text>
         </g>
     );
@@ -109,6 +125,7 @@ function SharedReadouts({ time }: { time: number }) {
 function CoolingMugDrawing() {
     const setVar = useSetVar();
     const time = useVar<number>("coolingTime", DEFAULT_TIME);
+    const k = useVar<number>("coolingK", DEFAULT_K);
     const playing = useVar<boolean>("coolingPlaying", false);
     const { opacity, weight, isActive, hoverProps } = useHighlightState();
 
@@ -127,11 +144,11 @@ function CoolingMugDrawing() {
     const handlePointerMove = (event: React.PointerEvent<SVGCircleElement>) => {
         if (!draggingRef.current) return;
         const point = svgPointFromEvent(event, svgRef.current);
-        const temp = clamp((ROOM_Y - point.y) / PX_PER_DEGREE + ROOM_TEMP, MIN_TEMP, START_TEMP);
-        setVar("coolingTime", clamp(timeAtTemp(temp), 0, MAX_TIME));
+        const temp = clamp((ROOM_Y - point.y) / PX_PER_DEGREE + ROOM_TEMP, minTemp(k), START_TEMP);
+        setVar("coolingTime", clamp(timeAtTemp(temp, k), 0, MAX_TIME));
     };
 
-    const temp = tempAtTime(time);
+    const temp = tempAtTime(time, k);
     const markerY = yForTemp(temp);
     const steamOpacity = 0.1 + 0.75 * ((temp - ROOM_TEMP) / (START_TEMP - ROOM_TEMP));
     const spanX = remap(time, 0, MAX_TIME, 70, 210);
@@ -150,7 +167,7 @@ function CoolingMugDrawing() {
                 </filter>
             </defs>
 
-            <SharedReadouts time={time} />
+            <SharedReadouts time={time} k={k} />
 
             {/* Ambient structure: the mug, the tube, the room line. */}
             <g opacity={opacity("__structure")} style={EASE_150}>
@@ -171,10 +188,6 @@ function CoolingMugDrawing() {
                 <path d="M 74 142 L 166 142" stroke={INK_QUIET} strokeWidth="1.5" strokeLinecap="round" />
                 <rect x="282" y="64" width="16" height="182" rx="8" fill="#F8FAFC" stroke={INK_STRUCTURE} strokeWidth="1.5" />
                 <circle cx={THERMO_X} cy="256" r="13" fill="#F8FAFC" stroke={INK_STRUCTURE} strokeWidth="1.5" />
-                <line x1="212" y1={ROOM_Y} x2="336" y2={ROOM_Y} stroke={INK_QUIET} strokeWidth="1.5" strokeDasharray="4 4" />
-                <text x="204" y={ROOM_Y + 4} fill={INK} fontSize="12" textAnchor="end">
-                    room 20°
-                </text>
                 {/* Before-state reference: where the drink started. */}
                 <line x1="276" y1={yForTemp(START_TEMP)} x2="304" y2={yForTemp(START_TEMP)} stroke={INK_QUIET} strokeWidth="1.5" />
                 <text x="270" y={yForTemp(START_TEMP) + 4} fill={INK} fontSize="12" textAnchor="end">
@@ -182,14 +195,26 @@ function CoolingMugDrawing() {
                 </text>
             </g>
 
+            {/* ROOM group — where the drink is heading; the counterpart of the
+                room line in the graph, and of the 20 in the rule. */}
+            <g {...hoverProps("room")} opacity={opacity("room")} style={EASE_150}>
+                <Halo active={isActive("room")}>
+                    <line x1="212" y1={ROOM_Y} x2="336" y2={ROOM_Y} stroke={ROOM} strokeWidth={weight("room", 1.5) + 6} strokeLinecap="round" />
+                </Halo>
+                <line x1="212" y1={ROOM_Y} x2="336" y2={ROOM_Y} stroke={ROOM} strokeWidth={weight("room", 1.5)} strokeDasharray="4 4" />
+                <text x="204" y={ROOM_Y + 4} fill={ROOM} fontSize="12" textAnchor="end">
+                    room 20°
+                </text>
+            </g>
+
             {/* TIME group — the counterpart of the graph's elapsed span. */}
             <g {...hoverProps("time")} opacity={opacity("time")} style={EASE_150}>
                 <line x1="70" y1={SPAN_Y + 16} x2="210" y2={SPAN_Y + 16} stroke={INK_QUIET} strokeWidth="1.5" strokeLinecap="round" />
                 <Halo active={isActive("time")}>
-                    <line x1="70" y1={SPAN_Y + 16} x2={spanX} y2={SPAN_Y + 16} stroke={INK_STRUCTURE} strokeWidth={weight("time", 2.5) + 6} strokeLinecap="round" />
+                    <line x1="70" y1={SPAN_Y + 16} x2={spanX} y2={SPAN_Y + 16} stroke={TIME} strokeWidth={weight("time", 2.5) + 6} strokeLinecap="round" />
                 </Halo>
-                <line x1="70" y1={SPAN_Y + 16} x2={spanX} y2={SPAN_Y + 16} stroke={INK_STRUCTURE} strokeWidth={weight("time", 2.5)} strokeLinecap="round" />
-                <text x="140" y={SPAN_Y + 4} fill={INK} fontSize="12" textAnchor="middle">
+                <line x1="70" y1={SPAN_Y + 16} x2={spanX} y2={SPAN_Y + 16} stroke={TIME} strokeWidth={weight("time", 2.5)} strokeLinecap="round" />
+                <text x="140" y={SPAN_Y + 4} fill={TIME} fontSize="12" textAnchor="middle">
                     time
                 </text>
             </g>
@@ -201,15 +226,15 @@ function CoolingMugDrawing() {
                     <path d="M 134 124 Q 126 110 134 96 Q 142 84 136 74" fill="none" stroke={INK_STRUCTURE} strokeWidth="2" strokeLinecap="round" />
                 </g>
                 <Halo active={isActive("temperature")}>
-                    <line x1={THERMO_X} y1={ROOM_Y} x2={THERMO_X} y2={markerY} stroke={ACCENT} strokeWidth={weight("temperature", 9) + 6} strokeLinecap="round" />
+                    <line x1={THERMO_X} y1={ROOM_Y} x2={THERMO_X} y2={markerY} stroke={TEMPERATURE} strokeWidth={weight("temperature", 9) + 6} strokeLinecap="round" />
                 </Halo>
-                <line x1={THERMO_X} y1={ROOM_Y} x2={THERMO_X} y2={markerY} stroke={ACCENT} strokeWidth={weight("temperature", 9)} strokeLinecap="round" />
+                <line x1={THERMO_X} y1={ROOM_Y} x2={THERMO_X} y2={markerY} stroke={TEMPERATURE} strokeWidth={weight("temperature", 9)} strokeLinecap="round" />
                 {/* Guide leaving toward the graph beside it, at the same height. */}
-                <line x1="302" y1={markerY} x2="336" y2={markerY} stroke={ACCENT} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
+                <line x1="302" y1={markerY} x2="336" y2={markerY} stroke={TEMPERATURE} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
             </g>
 
             <g transform={`translate(${THERMO_X} ${markerY}) scale(${handleScale})`}>
-                <circle r="8" fill={ACCENT} filter="url(#cooling-mug-shadow)" />
+                <circle r="8" fill={TEMPERATURE} filter="url(#cooling-mug-shadow)" />
             </g>
             <circle
                 cx={THERMO_X}
@@ -243,6 +268,7 @@ function CoolingMugDrawing() {
 function CoolingGraphDrawing() {
     const setVar = useSetVar();
     const time = useVar<number>("coolingTime", DEFAULT_TIME);
+    const k = useVar<number>("coolingK", DEFAULT_K);
     const { opacity, weight, isActive, hoverProps } = useHighlightState();
 
     const [dragging, setDragging] = useState(false);
@@ -261,11 +287,11 @@ function CoolingGraphDrawing() {
     const pathFor = (upTo: number) =>
         samples
             .filter((t) => t <= upTo)
-            .map((t, index) => `${index === 0 ? "M" : "L"} ${xForTime(t)} ${yForTemp(tempAtTime(t))}`)
+            .map((t, index) => `${index === 0 ? "M" : "L"} ${xForTime(t)} ${yForTemp(tempAtTime(t, k))}`)
             .join(" ");
 
     const markerX = xForTime(time);
-    const markerY = yForTemp(tempAtTime(time));
+    const markerY = yForTemp(tempAtTime(time, k));
 
     return (
         <svg
@@ -281,20 +307,16 @@ function CoolingGraphDrawing() {
                 </filter>
             </defs>
 
-            <SharedReadouts time={time} />
+            <SharedReadouts time={time} k={k} />
 
             <g opacity={opacity("__structure")} style={EASE_150}>
-                <line x1={PLOT_LEFT} y1={ROOM_Y} x2={PLOT_RIGHT} y2={ROOM_Y} stroke={INK_QUIET} strokeWidth="1.5" />
                 <line x1={PLOT_LEFT} y1={yForTemp(START_TEMP)} x2={PLOT_LEFT} y2={ROOM_Y} stroke={INK_QUIET} strokeWidth="1.5" />
-                <g fill={INK} fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    <text x={PLOT_LEFT - 10} y={yForTemp(START_TEMP) + 4}>90°</text>
-                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4}>55°</text>
-                    <text x={PLOT_LEFT - 10} y={ROOM_Y + 4}>20°</text>
+                <g fontSize="12" textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(START_TEMP) + 4} fill={TEMPERATURE}>90°</text>
+                    <text x={PLOT_LEFT - 10} y={yForTemp(55) + 4} fill={TEMPERATURE}>55°</text>
+                    <text x={PLOT_LEFT - 10} y={ROOM_Y + 4} fill={ROOM}>20°</text>
                 </g>
-                <text x={PLOT_LEFT + 6} y={ROOM_Y - 8} fill={INK} fontSize="12" textAnchor="start">
-                    room
-                </text>
-                <g fill={INK} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <g fill={TIME} fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
                     <text x={PLOT_LEFT} y={SPAN_Y + 32} textAnchor="start">0</text>
                     <text x={xForTime(20)} y={SPAN_Y + 32} textAnchor="middle">20 min</text>
                     <text x={PLOT_RIGHT} y={SPAN_Y + 32} textAnchor="end">40</text>
@@ -303,13 +325,25 @@ function CoolingGraphDrawing() {
                 <path d={pathFor(MAX_TIME)} fill="none" stroke={INK_QUIET} strokeWidth="1.5" />
             </g>
 
+            {/* ROOM group — same id as the mug's room line, so hovering the 20
+                in the rule pops the level in BOTH views. */}
+            <g {...hoverProps("room")} opacity={opacity("room")} style={EASE_150}>
+                <Halo active={isActive("room")}>
+                    <line x1={PLOT_LEFT} y1={ROOM_Y} x2={PLOT_RIGHT} y2={ROOM_Y} stroke={ROOM} strokeWidth={weight("room", 1.5) + 6} strokeLinecap="round" />
+                </Halo>
+                <line x1={PLOT_LEFT} y1={ROOM_Y} x2={PLOT_RIGHT} y2={ROOM_Y} stroke={ROOM} strokeWidth={weight("room", 1.5)} />
+                <text x={PLOT_LEFT + 6} y={ROOM_Y - 8} fill={ROOM} fontSize="12" textAnchor="start">
+                    room
+                </text>
+            </g>
+
             {/* TIME group — counterpart of the mug's elapsed track, same id. */}
             <g {...hoverProps("time")} opacity={opacity("time")} style={EASE_150}>
                 <Halo active={isActive("time")}>
-                    <line x1={PLOT_LEFT} y1={SPAN_Y + 16} x2={markerX} y2={SPAN_Y + 16} stroke={INK_STRUCTURE} strokeWidth={weight("time", 2.5) + 6} strokeLinecap="round" />
+                    <line x1={PLOT_LEFT} y1={SPAN_Y + 16} x2={markerX} y2={SPAN_Y + 16} stroke={TIME} strokeWidth={weight("time", 2.5) + 6} strokeLinecap="round" />
                 </Halo>
-                <line x1={PLOT_LEFT} y1={SPAN_Y + 16} x2={markerX} y2={SPAN_Y + 16} stroke={INK_STRUCTURE} strokeWidth={weight("time", 2.5)} strokeLinecap="round" />
-                <text x={(PLOT_LEFT + markerX) / 2} y={SPAN_Y + 4} fill={INK} fontSize="12" textAnchor="middle">
+                <line x1={PLOT_LEFT} y1={SPAN_Y + 16} x2={markerX} y2={SPAN_Y + 16} stroke={TIME} strokeWidth={weight("time", 2.5)} strokeLinecap="round" />
+                <text x={(PLOT_LEFT + markerX) / 2} y={SPAN_Y + 4} fill={TIME} fontSize="12" textAnchor="middle">
                     time
                 </text>
             </g>
@@ -317,16 +351,16 @@ function CoolingGraphDrawing() {
             {/* TEMPERATURE group — same id, same accent, same pixel height as
                 the thermometer's column beside it. */}
             <g {...hoverProps("temperature")} opacity={opacity("temperature")} style={EASE_150}>
-                <path d={pathFor(time)} fill="none" stroke={ACCENT} strokeWidth={weight("temperature", 2.5)} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={pathFor(time)} fill="none" stroke={TEMPERATURE} strokeWidth={weight("temperature", 2.5)} strokeLinecap="round" strokeLinejoin="round" />
                 <Halo active={isActive("temperature")}>
-                    <line x1={markerX} y1={ROOM_Y} x2={markerX} y2={markerY} stroke={ACCENT} strokeWidth={weight("temperature", 3) + 6} strokeLinecap="round" />
+                    <line x1={markerX} y1={ROOM_Y} x2={markerX} y2={markerY} stroke={TEMPERATURE} strokeWidth={weight("temperature", 3) + 6} strokeLinecap="round" />
                 </Halo>
-                <line x1={markerX} y1={ROOM_Y} x2={markerX} y2={markerY} stroke={ACCENT} strokeWidth={weight("temperature", 3)} strokeLinecap="round" />
-                <line x1={PLOT_LEFT} y1={markerY} x2={markerX} y2={markerY} stroke={ACCENT} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
+                <line x1={markerX} y1={ROOM_Y} x2={markerX} y2={markerY} stroke={TEMPERATURE} strokeWidth={weight("temperature", 3)} strokeLinecap="round" />
+                <line x1={PLOT_LEFT} y1={markerY} x2={markerX} y2={markerY} stroke={TEMPERATURE} strokeWidth="1.5" strokeDasharray="3 4" opacity={0.6} />
             </g>
 
             <g transform={`translate(${markerX} ${markerY}) scale(${handleScale})`}>
-                <circle r="8" fill={ACCENT} filter="url(#cooling-graph-shadow)" />
+                <circle r="8" fill={TEMPERATURE} filter="url(#cooling-graph-shadow)" />
             </g>
             <circle
                 cx={markerX}
@@ -364,12 +398,21 @@ function CoolingMugFigure() {
             playVarName="coolingPlaying"
             onReset={() => {
                 setVar("coolingTime", DEFAULT_TIME);
+                setVar("coolingK", DEFAULT_K);
                 setVar("coolingPlaying", false);
                 setVar("coolingViewHighlight", "");
             }}
-            caption="Drag the teal marker down the thermometer. The teal column is how far the drink still sits above the room."
+            caption="Drag the teal marker down the thermometer. The teal column is how far the drink still sits above the sky-blue room line, and the indigo track below is the time that has passed."
         >
             <CoolingMugDrawing />
+            <div className="px-6 pb-5">
+                <FigureSlider
+                    varName="coolingK"
+                    label="Steepness k"
+                    {...numberPropsFromDefinition(getVariableInfo("coolingK"))}
+                    formatValue={formatSteepness}
+                />
+            </div>
             <InteractionHintSequence
                 hintKey="cooling-mug-thermometer-drag"
                 steps={[
@@ -394,7 +437,7 @@ function CoolingGraphFigure() {
                 setVar("coolingTime", DEFAULT_TIME);
                 setVar("coolingViewHighlight", "");
             }}
-            caption="The same drink, plotted against time. Drag this marker instead and the mug follows."
+            caption="The same drink, plotted against the indigo clock. Drag this marker instead and the mug follows."
         >
             <CoolingGraphDrawing />
             <div className="px-6 pb-5">
@@ -424,7 +467,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-rule-heading" maxWidth="xl">
         <Block id="rate-rule-heading" padding="md">
             <EditableH2 id="h2-rate-rule-heading" blockId="rate-rule-heading">
-                An Equation About How Fast Things Change
+                Modelling Rate of Change: Newton's Law of Cooling
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -432,16 +475,41 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-rule-setup" maxWidth="xl">
         <Block id="rate-rule-setup" padding="sm">
             <EditableParagraph id="para-rate-rule-setup" blockId="rate-rule-setup">
-                A hot drink loses heat quickly at first and then more and more slowly. Written as a
-                rule, the cooling speed is proportional to how far the drink sits above the room. The
-                left side below is a speed, not a temperature.
+                A hot drink loses heat quickly at first and then more and more slowly.{" "}
+                <InlineTooltip
+                    id="tooltip-rate-rule-newton"
+                    tooltip="Newton's law of cooling: the rate at which a body loses heat is proportional to the difference between its temperature and that of its surroundings."
+                >
+                    Newton's law of cooling
+                </InlineTooltip>{" "}
+                says the{" "}
+                <InlineSpotColor varName="symbolRate" {...spotColorPropsFromDefinition(getVariableInfo("symbolRate"))}>
+                    cooling speed
+                </InlineSpotColor>{" "}
+                is proportional to how far the{" "}
+                <InlineSpotColor varName="symbolTemperature" {...spotColorPropsFromDefinition(getVariableInfo("symbolTemperature"))}>
+                    drink
+                </InlineSpotColor>{" "}
+                sits above the{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    room
+                </InlineSpotColor>
+                . The left side below is a speed, not a temperature.
             </EditableParagraph>
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-rate-rule-formula" maxWidth="xl">
         <Block id="rate-rule-formula" padding="lg">
-            <FormulaBlock latex="\frac{dT}{dt} = -k\,(T - 20)" />
+            <FormulaBlock
+                latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}} = -\scrub{coolingK}\,\left(\highlight{temperature}{T} - \highlight{room}{20}\right)"
+                colorMap={{ rate: QUANTITY.rate, time: QUANTITY.time }}
+                variables={scrubVarsFromDefinitions(["coolingK"])}
+                linkedHighlights={{
+                    temperature: { varName: "coolingViewHighlight", ...hue("temperature") },
+                    room: { varName: "coolingViewHighlight", ...hue("room") },
+                }}
+            />
         </Block>
     </StackLayout>,
 
@@ -457,13 +525,27 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
                 />{" "}
                 the{" "}
                 <InlineLinkedHighlight
+                    id="link-rate-rule-gap"
                     varName="coolingViewHighlight"
                     highlightId="temperature"
-                    {...linkedHighlightPropsFromDefinition(getVariableInfo("coolingViewHighlight"))}
+                    {...hue("temperature")}
                 >
                     height above the room line
                 </InlineLinkedHighlight>{" "}
-                is the gap the drink still has to lose.
+                is the gap the drink still has to lose, and{" "}
+                <InlineScrubbleNumber
+                    varName="coolingK"
+                    {...numberPropsFromDefinition(getVariableInfo("coolingK"))}
+                    formatValue={formatSteepness}
+                />{" "}
+                decides how impatient the whole thing is. A{" "}
+                <InlineTrigger id="trigger-rate-rule-thin-cup" varName="coolingK" value={0.1} icon="zap">
+                    thin paper cup
+                </InlineTrigger>{" "}
+                loses heat about twice as fast as a{" "}
+                <InlineTrigger id="trigger-rate-rule-flask" varName="coolingK" value={0.025} icon="refresh">
+                    thick vacuum flask
+                </InlineTrigger>.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -480,9 +562,15 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-rule-reflection" maxWidth="xl">
         <Block id="rate-rule-reflection" padding="sm">
             <EditableParagraph id="para-rate-rule-reflection" blockId="rate-rule-reflection">
-                Notice what the equation never tells you: the temperature itself. It hands you the
-                speed at this instant, and the temperature is whatever follows from obeying that
-                speed, minute after minute.
+                Notice what the equation never tells you: the temperature itself. It hands you the{" "}
+                <InlineTooltip
+                    id="tooltip-rate-rule-instant"
+                    tooltip="An instantaneous rate: how fast the temperature would change if it kept this speed up for a whole minute. It is measured in degrees per minute."
+                >
+                    speed at this instant
+                </InlineTooltip>
+                , and the temperature is whatever follows from obeying that speed, minute after
+                minute.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -490,7 +578,12 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-rule-question-meaning" maxWidth="xl">
         <Block id="rate-rule-question-meaning" padding="md">
             <EditableParagraph id="para-rate-rule-question-meaning" blockId="rate-rule-question-meaning">
-                In the cooling rule, <InlineFormula latex="\frac{dT}{dt}" colorMap={{}} /> stands for{" "}
+                In the cooling rule,{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}}"
+                    colorMap={{ rate: QUANTITY.rate, time: QUANTITY.time }}
+                />{" "}
+                stands for{" "}
                 <InlineFeedback
                     varName="answerRateMeaning"
                     correctValue="the speed the drink is cooling"
@@ -520,7 +613,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
                             },
                         ],
                         label: "Discover it yourself",
-                        resetVars: { coolingTime: DEFAULT_TIME },
+                        resetVars: { coolingTime: DEFAULT_TIME, coolingK: DEFAULT_K },
                     }}
                 >
                     <InlineClozeChoice
@@ -532,6 +625,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
                             "the time on the clock",
                         ]}
                         {...choicePropsFromDefinition(getVariableInfo("answerRateMeaning"))}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -541,8 +635,16 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     <StackLayout key="layout-rate-rule-question-speed" maxWidth="xl">
         <Block id="rate-rule-question-speed" padding="md">
             <EditableParagraph id="para-rate-rule-question-speed" blockId="rate-rule-question-speed">
-                Take a different drink, sitting at 60 degrees in that same 20-degree room with
-                k = 0.05. Its cooling speed, in degrees per minute, is{" "}
+                Take a different drink, sitting at{" "}
+                <InlineSpotColor varName="symbolTemperature" {...spotColorPropsFromDefinition(getVariableInfo("symbolTemperature"))}>
+                    60 degrees
+                </InlineSpotColor>{" "}
+                in that same{" "}
+                <InlineSpotColor varName="symbolRoom" {...spotColorPropsFromDefinition(getVariableInfo("symbolRoom"))}>
+                    20-degree room
+                </InlineSpotColor>{" "}
+                with <InlineFormula latex="\clr{steepness}{k} = \clr{steepness}{0.05}" colorMap={{ steepness: QUANTITY.steepness }} />. Its cooling speed,
+                in degrees per minute, is{" "}
                 <InlineFeedback
                     varName="answerCoolingSpeed"
                     correctValue={["2", "2.0", "-2", "-2.0"]}
@@ -555,6 +657,7 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
                         varName="answerCoolingSpeed"
                         correctAnswer={["2", "2.0", "-2", "-2.0"]}
                         {...clozePropsFromDefinition(getVariableInfo("answerCoolingSpeed"))}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
                     />
                 </InlineFeedback>.
             </EditableParagraph>
@@ -562,8 +665,33 @@ export const anEquationAboutChangeBlocks: ReactElement[] = [
     </StackLayout>,
 
     <StackLayout key="layout-block-1787908235539" maxWidth="xl">
-        <Block id="block-1787908235539" padding="sm">
-            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">A drink sitting at 50 degree in the 20 degree room with k=0.05. its cooling speed   <InlineClozeInput varName={"var_inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"} correctAnswer={"1"} placeholder={"_____"} color={"#D81B60"} bgColor={"rgba(59, 130, 246, 0.35)"} caseSensitive={false} id={"inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"} /></EditableParagraph>
+        <Block id="block-1787908235539" padding="md">
+            <EditableParagraph id="para-block-1787908235539" blockId="block-1787908235539">
+                And one sitting at{" "}
+                <InlineSpotColor varName="symbolTemperature" {...spotColorPropsFromDefinition(getVariableInfo("symbolTemperature"))}>
+                    50 degrees
+                </InlineSpotColor>{" "}
+                in that same room cools at{" "}
+                <InlineFeedback
+                    varName="var_inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"
+                    correctValue={["1.5", "-1.5"]}
+                    position="terminal"
+                    successMessage="— right: the gap is 30 degrees, and 0.05 × 30 = 1.5"
+                    failureMessage="— almost."
+                    hint="Take the gap above 20 degrees, then multiply it by 0.05"
+                >
+                    <InlineClozeInput
+                        varName="var_inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"
+                        correctAnswer={["1.5", "-1.5"]}
+                        id="inlineClozeInput-c4cc2a03-f358-40ba-a1a3-2ed1b0f4a99d"
+                        placeholder="???"
+                        color={QUANTITY.rate}
+                        bgColor={tint(QUANTITY.rate, 0.18)}
+                        caseSensitive={false}
+                    />
+                </InlineFeedback>{" "}
+                degrees per minute.
+            </EditableParagraph>
         </Block>
     </StackLayout>,
 ];

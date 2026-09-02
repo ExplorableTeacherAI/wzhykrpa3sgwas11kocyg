@@ -14,6 +14,7 @@
  */
 
 import { type VarValue } from '@/stores';
+import { QUANTITY, tint } from './lessonColors';
 
 /**
  * Variable definition with metadata
@@ -143,8 +144,54 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         type: 'text',
         label: 'Definition view highlight',
         description: "What is highlighted in the sorting figure: '' | 'derivatives' | 'trays'",
-        color: '#3FA98A',
-        bgColor: 'rgba(98, 208, 173, 0.22)',
+        color: QUANTITY.derivative,
+        bgColor: tint(QUANTITY.derivative),
+    },
+
+    // ─────────────────────────────────────────
+    // COLOUR LANGUAGE — one hue per quantity, shared by prose and figures
+    // ─────────────────────────────────────────
+    symbolTemperature: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of the temperature T',
+        description: 'Teal wherever the drink\'s warmth appears',
+        color: QUANTITY.temperature,
+    },
+    symbolTime: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of the time t',
+        description: 'Indigo wherever the clock appears',
+        color: QUANTITY.time,
+    },
+    symbolRate: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of a rate of change',
+        description: 'Violet wherever a speed of change appears',
+        color: QUANTITY.rate,
+    },
+    symbolRoom: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of the room temperature',
+        description: 'Sky blue wherever the surroundings appear',
+        color: QUANTITY.room,
+    },
+    symbolSteepness: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of the steepness k',
+        description: 'Rose wherever the constant k appears',
+        color: QUANTITY.steepness,
+    },
+    symbolOrder: {
+        defaultValue: '',
+        type: 'spotColor',
+        label: 'Colour of the order',
+        description: 'Coral wherever the order of an equation appears',
+        color: QUANTITY.order,
     },
 
     // ─────────────────────────────────────────
@@ -157,7 +204,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: the order of d3y/dx3 + 2y = x',
         placeholder: '???',
         correctAnswer: ['3', 'three', 'third'],
-        color: '#8E90F5',
+        color: QUANTITY.order,
     },
     answerCubedDerivative: {
         defaultValue: '',
@@ -166,7 +213,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: the order of (dy/dx)3 = y + 1',
         placeholder: '???',
         correctAnswer: ['1', 'one', 'first'],
-        color: '#8E90F5',
+        color: QUANTITY.order,
     },
 
     // ─────────────────────────────────────────
@@ -181,15 +228,25 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 0,
         max: 40,
         step: 0.5,
-        color: '#62D0AD',
+        color: QUANTITY.time,
+    },
+    coolingK: {
+        defaultValue: 0.05,
+        type: 'number',
+        label: 'Cooling constant k',
+        description: 'How steeply this drink cools; shared by the mug, the graph and the rule',
+        min: 0.02,
+        max: 0.12,
+        step: 0.005,
+        color: QUANTITY.steepness,
     },
     coolingViewHighlight: {
         defaultValue: '',
         type: 'text',
         label: 'Cooling view highlight',
         description: "Which quantity is highlighted across both cooling views: '' | 'temperature' | 'time'",
-        color: '#3FA98A',
-        bgColor: 'rgba(98, 208, 173, 0.22)',
+        color: QUANTITY.temperature,
+        bgColor: tint(QUANTITY.temperature),
     },
     coolingPlaying: {
         defaultValue: false,
@@ -210,7 +267,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 25,
         max: 90,
         step: 0.5,
-        color: '#62D0AD',
+        color: QUANTITY.temperature,
     },
     predictedSpeed: {
         defaultValue: 3.5,
@@ -221,7 +278,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 0,
         max: 3.5,
         step: 0.05,
-        color: '#94A3B8',
+        color: QUANTITY.guess,
     },
     ratePredictionRevealed: {
         defaultValue: false,
@@ -240,8 +297,8 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         type: 'text',
         label: 'Rate view highlight',
         description: "Which quantity is highlighted in the two-bar figure: '' | 'warmth' | 'gap'",
-        color: '#3FA98A',
-        bgColor: 'rgba(98, 208, 173, 0.22)',
+        color: QUANTITY.temperature,
+        bgColor: tint(QUANTITY.temperature),
     },
 
     // ─────────────────────────────────────────
@@ -256,7 +313,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 10,
         max: 70,
         step: 0.5,
-        color: '#62D0AD',
+        color: QUANTITY.temperature,
     },
     guessK: {
         defaultValue: 0.09,
@@ -266,15 +323,15 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 0.01,
         max: 0.15,
         step: 0.001,
-        color: '#62D0AD',
+        color: QUANTITY.steepness,
     },
     guessViewHighlight: {
         defaultValue: '',
         type: 'text',
         label: 'Guess view highlight',
         description: "What is highlighted in the slope-field figure: '' | 'curve' | 'field'",
-        color: '#3FA98A',
-        bgColor: 'rgba(98, 208, 173, 0.22)',
+        color: QUANTITY.temperature,
+        bgColor: tint(QUANTITY.temperature),
     },
 
     // ─────────────────────────────────────────
@@ -316,15 +373,15 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         min: 0,
         max: 40,
         step: 0.5,
-        color: '#62D0AD',
+        color: QUANTITY.time,
     },
     applicationHighlight: {
         defaultValue: '',
         type: 'text',
         label: 'Application view highlight',
         description: "What is highlighted in the set-up figure: '' | 'chips' | 'curve'",
-        color: '#3FA98A',
-        bgColor: 'rgba(98, 208, 173, 0.22)',
+        color: QUANTITY.temperature,
+        bgColor: tint(QUANTITY.temperature),
     },
 
     // ─────────────────────────────────────────
@@ -337,7 +394,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: the number inside the bracket for a 15 degree kitchen',
         placeholder: '???',
         correctAnswer: ['15'],
-        color: '#8E90F5',
+        color: QUANTITY.room,
     },
     answerSoupSpeed: {
         defaultValue: '',
@@ -346,7 +403,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: cooling speed of 70 degree soup in a 15 degree kitchen, k = 0.04',
         placeholder: '???',
         correctAnswer: ['2.2', '2.20', '-2.2', '-2.20'],
-        color: '#8E90F5',
+        color: QUANTITY.rate,
     },
 
     // ─────────────────────────────────────────
@@ -360,7 +417,17 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         placeholder: '???',
         correctAnswer: '200e^(0.03t)',
         options: ['200e^(0.03t)', '200e^(3t)', '0.03t + 200'],
-        color: '#8E90F5',
+        color: QUANTITY.steepness,
+    },
+    derivativeMultiplier: {
+        defaultValue: '',
+        type: 'select',
+        label: 'Multiplier that drops out front',
+        description: 'Formula choice: what appears in front when 70e^(-0.05t) is differentiated',
+        placeholder: '???',
+        correctAnswer: '-0.05',
+        options: ['-0.05', '0.05', '-70', '70'],
+        color: QUANTITY.steepness,
     },
     answerExponentValue: {
         defaultValue: '',
@@ -369,7 +436,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: the c in dT/dt = c(T - 20) for T = 20 + 40e^(-0.02t)',
         placeholder: '???',
         correctAnswer: ['-0.02', '-0.020', '-.02'],
-        color: '#8E90F5',
+        color: QUANTITY.steepness,
     },
 
     // ─────────────────────────────────────────
@@ -382,7 +449,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: cooling speed of a 40 degree drink in a 20 degree room',
         placeholder: '???',
         correctAnswer: ['1', '1.0', '-1', '-1.0'],
-        color: '#8E90F5',
+        color: QUANTITY.rate,
     },
     answerSpeedRatio: {
         defaultValue: '',
@@ -391,7 +458,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: how many times faster the 80 degree drink cools than the 50 degree one',
         placeholder: '???',
         correctAnswer: ['2', '2.0', 'twice', 'two'],
-        color: '#8E90F5',
+        color: QUANTITY.rate,
     },
 
     // ─────────────────────────────────────────
@@ -409,7 +476,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
             'the temperature of the drink',
             'the time on the clock',
         ],
-        color: '#8E90F5',
+        color: QUANTITY.rate,
     },
     answerCoolingSpeed: {
         defaultValue: '',
@@ -418,7 +485,7 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         description: 'Student answer: cooling speed in degrees per minute for a 60 degree drink',
         placeholder: '???',
         correctAnswer: ['2', '2.0', '-2', '-2.0'],
-        color: '#8E90F5',
+        color: QUANTITY.rate,
     },
 
     // Uncomment and modify these examples for your lesson:
