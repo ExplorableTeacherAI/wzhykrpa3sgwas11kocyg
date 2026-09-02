@@ -1,7 +1,8 @@
 import { type ReactElement } from "react";
 import { Block } from "@/components/templates";
 import { StackLayout } from "@/components/layouts";
-import { EditableH1, EditableParagraph, InlineTooltip } from "@/components/atoms";
+import { EditableH1, EditableParagraph, InlineFormula, InlineTooltip } from "@/components/atoms";
+import { QUANTITY } from "../lessonColors";
 
 export const introducingDifferentialEquationsBlocks: ReactElement[] = [
     <StackLayout key="layout-orientation-title" maxWidth="xl">
@@ -25,17 +26,27 @@ export const introducingDifferentialEquationsBlocks: ReactElement[] = [
     <StackLayout key="layout-orientation-promise" maxWidth="xl">
         <Block id="orientation-promise" padding="sm">
             <EditableParagraph id="para-orientation-promise" blockId="orientation-promise">
-                The equation that describes this is called a{" "}
+                An ordinary equation like{" "}
+                <InlineFormula
+                    latex="\clr{temperature}{T} = 65"
+                    colorMap={{ temperature: QUANTITY.temperature }}
+                />{" "}
+                hands you a number. A{" "}
                 <InlineTooltip
                     id="tooltip-orientation-differential-equation"
-                    tooltip="An equation containing a derivative. Instead of telling you a quantity, it tells you the speed at which that quantity is changing."
+                    tooltip="An equation containing a derivative of the unknown function. Its solution is not a number but a function: one whose derivative satisfies the equation at every value of the variable."
                 >
                     differential equation
-                </InlineTooltip>
-                : instead of giving you the temperature, it gives you how fast the temperature is
-                changing. By the end you will write one for that mug and use it to predict how warm
-                the drink is later. If you can differentiate x² and e to the x, you have the only
-                tool you need.
+                </InlineTooltip>{" "}
+                hands you a rule instead, written with the derivative{" "}
+                <InlineFormula
+                    latex="\frac{\clr{rate}{dT}}{\clr{time}{dt}}"
+                    colorMap={{ rate: QUANTITY.rate, time: QUANTITY.time }}
+                />
+                : how fast the temperature is changing at each moment. Solving it means finding a
+                whole function, a temperature for every instant, whose derivative obeys that rule. If
+                you can differentiate x² and e to the x you can already test one, and by the end you
+                will write the mug's rule and predict its temperature.
             </EditableParagraph>
         </Block>
     </StackLayout>,
