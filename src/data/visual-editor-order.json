@@ -2,7 +2,6 @@
   "version": 3,
   "blockIds": [
     "orientation-title",
-    "orientation-hook",
     "orientation-promise",
     "definition-heading",
     "definition-setup",
@@ -56,18 +55,6 @@
       "columns": [
         [
           "orientation-title"
-        ]
-      ],
-      "props": {
-        "maxWidth": "xl"
-      }
-    },
-    {
-      "id": "layout-orientation-hook",
-      "type": "stack",
-      "columns": [
-        [
-          "orientation-hook"
         ]
       ],
       "props": {
@@ -244,6 +231,7 @@
       "props": {
         "ratio": "1:1",
         "gap": "lg",
+        "reverse": false,
         "align": "start"
       }
     },

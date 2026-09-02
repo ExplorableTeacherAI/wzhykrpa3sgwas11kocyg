@@ -13,16 +13,6 @@ export const introducingDifferentialEquationsBlocks: ReactElement[] = [
         </Block>
     </StackLayout>,
 
-    <StackLayout key="layout-orientation-hook" maxWidth="xl">
-        <Block id="orientation-hook" padding="sm">
-            <EditableParagraph id="para-orientation-hook" blockId="orientation-hook">
-                Leave a mug of hot chocolate on your desk and walk away. Come back twenty minutes
-                later and it is cooler, but nowhere near cold. Something decided exactly how fast it
-                cooled, and it was not the clock.
-            </EditableParagraph>
-        </Block>
-    </StackLayout>,
-
     <StackLayout key="layout-orientation-promise" maxWidth="xl">
         <Block id="orientation-promise" padding="sm">
             <EditableParagraph id="para-orientation-promise" blockId="orientation-promise">
