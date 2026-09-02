@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { Block } from "@/components/templates";
 import { StackLayout } from "@/components/layouts";
-import { EditableH2, EditableParagraph, InlineFormula, Table } from "@/components/atoms";
+import { EditableH2, EditableParagraph, InlineFormula, InlineTooltip, Table } from "@/components/atoms";
 import { QUANTITY } from "../lessonColors";
 
 export const wrappingUpBlocks: ReactElement[] = [
@@ -143,6 +143,37 @@ export const wrappingUpBlocks: ReactElement[] = [
                 color={QUANTITY.derivative}
                 caption="Every equation met in this lesson. The order is how many times you differentiate to reach the highest derivative, never the power it is raised to."
             />
+        </Block>
+    </StackLayout>,
+
+    <StackLayout key="layout-block-1788378188195" maxWidth="xl">
+        <Block id="block-1788378188195" padding="sm">
+            <EditableParagraph id="para-block-1788378188195" blockId="block-1788378188195">
+                One step in every one of those checks is easy to trip over. The room temperature is a{" "}
+                <InlineTooltip
+                    id="tooltip-wrapping-up-constant"
+                    tooltip="A constant does not change with the variable you are differentiating with respect to, so its graph is a flat line and its derivative is zero everywhere."
+                >
+                    constant
+                </InlineTooltip>
+                , and{" "}
+                <InlineFormula
+                    latex="\frac{d}{\clr{time}{dt}}(\clr{room}{20}) = 0"
+                    colorMap={{ time: QUANTITY.time, room: QUANTITY.room }}
+                />
+                , not 20 and not 1. A number that never moves has no rate of change, so differentiating{" "}
+                <InlineFormula
+                    latex="\clr{temperature}{T} = \clr{room}{20} + \clr{temperature}{70}\,e^{-\clr{steepness}{0.05}\,\clr{time}{t}}"
+                    colorMap={{
+                        temperature: QUANTITY.temperature,
+                        room: QUANTITY.room,
+                        steepness: QUANTITY.steepness,
+                        time: QUANTITY.time,
+                    }}
+                />{" "}
+                leaves the exponential term alone. That is why the room sits inside the bracket of the
+                rule and never on its left-hand side.
+            </EditableParagraph>
         </Block>
     </StackLayout>,
 
